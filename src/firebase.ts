@@ -6,11 +6,11 @@ import {
 } from 'firebase/database';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyAv8s0vErAwc3KZaRF55isbKTzhgjuwGNE',
-  authDomain: 'pivision-28ddb.firebaseapp.com',
-  databaseURL: 'https://pivision-28ddb-default-rtdb.firebaseio.com',
-  projectId: 'pivision-28ddb',
-  storageBucket: 'pivision-28ddb.appspot.com',
+  apiKey: 'AIzaSyAltuIRIU-fdIlWTzyIRhhrKGTyQAKwqRU',
+  authDomain: 'fall-ball-ec207.firebaseapp.com',
+  databaseURL: 'https://fall-ball-ec207-default-rtdb.firebaseio.com',
+  projectId: 'fall-ball-ec207',
+  storageBucket: 'fall-ball-ec207.firebasestorage.app',
 };
 
 const app = initializeApp(firebaseConfig);
