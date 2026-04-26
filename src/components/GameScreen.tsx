@@ -17,9 +17,10 @@ interface LevelCfg {
 
 function getLevelCfg(level: number): LevelCfg {
   const rimThick = 10;
-  if (level <= 5)  return { innerHalf: 50, rimThick, speed: 0,    pattern: 'still',   makesNeeded: 3 };
-  if (level <= 10) return { innerHalf: 50, rimThick, speed: 1.5,  pattern: 'linear',  makesNeeded: 3 };
-  if (level <= 15) return { innerHalf: 36, rimThick, speed: 2.2,  pattern: 'linear',  makesNeeded: 4 };
+  if (level <= 1)  return { innerHalf: 50, rimThick, speed: 0,    pattern: 'still',   makesNeeded: 3 };
+  if (level <= 5)  return { innerHalf: 50, rimThick, speed: 1.5,  pattern: 'linear',  makesNeeded: 3 };
+  if (level <= 10) return { innerHalf: 44, rimThick, speed: 2.0,  pattern: 'linear',  makesNeeded: 3 };
+  if (level <= 15) return { innerHalf: 36, rimThick, speed: 2.8,  pattern: 'linear',  makesNeeded: 4 };
   if (level <= 20) return { innerHalf: 36, rimThick, speed: 3.2,  pattern: 'figure8', makesNeeded: 4 };
   const ex = level - 20;
   return {
@@ -29,6 +30,12 @@ function getLevelCfg(level: number): LevelCfg {
     pattern: 'figure8',
     makesNeeded: 5,
   };
+}
+
+function getLevel1HoopPos(makes: number, ch: number): { x: number; y: number } {
+  if (makes === 0) return { x: CW / 2, y: ch - 170 };
+  if (makes === 1) return { x: CW - 100, y: ch - 120 };
+  return { x: 100, y: ch - 120 };
 }
 
 let audioCtx: AudioContext | null = null;
@@ -187,6 +194,9 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
     shakeFrames: 0, shakeIntensity: 0, phaseTimer: 0,
     rimHitThisShot: false,
     plusOneAlpha: 0, plusOneY: 0, levelUpAlpha: 0, canvasHeight: 0,
+    nearMiss: false, hasPassedHoop: false,
+    missType: 'none' as 'none' | 'near' | 'airball',
+    levelBonus: 0,
   });
   const rafRef = useRef(0);
   const canvasHeight = useRef(Math.min(window.innerHeight, 844));
@@ -216,9 +226,20 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
     const ch = s.canvasHeight;
     const amp = CW / 2 - (cfg.innerHalf + cfg.rimThick) - 22;
     const spd = cfg.speed * 0.018;
-    if (cfg.pattern === 'still') { s.hoopX = CW / 2; }
-    else if (cfg.pattern === 'linear') { s.hoopX = CW / 2 + Math.sin(s.frame * spd) * amp; }
-    else { s.hoopX = CW / 2 + Math.sin(s.frame * spd) * amp; s.hoopY = ch - 170 + Math.sin(s.frame * spd * 2) * 18; }
+    if (s.level === 1) {
+      const pos = getLevel1HoopPos(s.makesThisLevel, ch);
+      s.hoopX = pos.x;
+      s.hoopY = pos.y;
+    } else if (cfg.pattern === 'still') {
+      s.hoopX = CW / 2;
+      s.hoopY = ch - 170;
+    } else if (cfg.pattern === 'linear') {
+      s.hoopX = CW / 2 + Math.sin(s.frame * spd) * amp;
+      s.hoopY = ch - 170;
+    } else {
+      s.hoopX = CW / 2 + Math.sin(s.frame * spd) * amp;
+      s.hoopY = ch - 170 + Math.sin(s.frame * spd * 2) * 18;
+    }
     if (s.shakeFrames > 0) { s.shakeFrames--; s.shakeIntensity *= 0.88; }
     s.particles = s.particles.filter(p => p.life > 0);
     for (const p of s.particles) { p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life--; }
@@ -232,6 +253,9 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
         s.ball = { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 };
         s.prevBall = { ...s.ball };
         s.rimHitThisShot = false;
+        s.nearMiss = false;
+        s.hasPassedHoop = false;
+        s.missType = 'none';
       }
       return;
     }
@@ -261,7 +285,8 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
         if (!s.rimHitThisShot) { s.rimHitThisShot = true; playRim(); }
       }
     }
-    if (s.prevBall.y < s.hoopY && s.ball.y >= s.hoopY) {
+    if (!s.hasPassedHoop && s.prevBall.y < s.hoopY && s.ball.y >= s.hoopY) {
+      s.hasPassedHoop = true;
       const t = (s.hoopY - s.prevBall.y) / (s.ball.y - s.prevBall.y);
       const xAtRim = s.prevBall.x + t * (s.ball.x - s.prevBall.x);
       const openLeft = s.hoopX - cfg2.innerHalf + BALL_R * 0.5;
@@ -273,18 +298,27 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
         emitParticles(s.particles, s.hoopX, s.hoopY - 20, 24);
         playSwish();
         if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
+          const bonus = s.level;
+          s.score += bonus;
+          s.levelBonus = bonus;
           s.level++; s.makesThisLevel = 0;
           s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
           emitParticles(s.particles, CW / 2, ch / 2, 40);
           playLevelUp();
         }
         return;
+      } else {
+        const distToOpening = xAtRim < openLeft ? openLeft - xAtRim : xAtRim - openRight;
+        s.nearMiss = distToOpening < 22;
       }
     }
     if (s.ball.y > ch + BALL_R * 2) {
       s.lives = Math.max(0, s.lives - 1);
       s.phase = 'missed'; s.phaseTimer = s.lives <= 0 ? 90 : 50;
       s.shakeFrames = 16; s.shakeIntensity = 9;
+      s.missType = s.nearMiss ? 'near' : 'airball';
+      s.nearMiss = false;
+      s.hasPassedHoop = false;
       playMiss();
     }
   }
@@ -337,6 +371,19 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
       ctx.fillText('+1', Math.round(s.hoopX), Math.round(s.plusOneY - (1 - s.plusOneAlpha) * 20));
       ctx.globalAlpha = 1;
     }
+    if (s.phase === 'missed' && s.missType !== 'none') {
+      const missAlpha = Math.min(1, s.phaseTimer / 15);
+      ctx.globalAlpha = missAlpha;
+      ctx.font = '14px "Press Start 2P"'; ctx.textAlign = 'center';
+      if (s.missType === 'near') {
+        ctx.fillStyle = '#ffd700';
+        ctx.fillText('SO CLOSE!', CW / 2, ch / 2 - 20);
+      } else {
+        ctx.fillStyle = '#ff4444';
+        ctx.fillText('AIRBALL!', CW / 2, ch / 2 - 20);
+      }
+      ctx.globalAlpha = 1;
+    }
     if (s.phase === 'levelup' && s.levelUpAlpha > 0.01) {
       ctx.globalAlpha = s.levelUpAlpha * 0.85;
       ctx.fillStyle = '#000033';
@@ -346,6 +393,8 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
       ctx.fillText('LEVEL UP!', CW / 2, ch / 2 - 10);
       ctx.fillStyle = '#ffd700'; ctx.font = '13px "Press Start 2P"';
       ctx.fillText(`LEVEL ${s.level}`, CW / 2, ch / 2 + 20);
+      ctx.fillStyle = '#00ff99'; ctx.font = '9px "Press Start 2P"';
+      ctx.fillText(`+${s.levelBonus} BONUS PTS`, CW / 2, ch / 2 + 46);
       ctx.globalAlpha = 1;
     }
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
