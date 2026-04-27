@@ -521,6 +521,12 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
             const tvx = s.ball.vx - dot * nx, tvy = s.ball.vy - dot * ny;
             s.ball.vx = tvx * friction + (-dot * nx) * restitution;
             s.ball.vy = tvy * friction + (-dot * ny) * restitution;
+            // Anti-stuck: if ball has almost no horizontal velocity after hitting
+            // a metal endpoint, nudge it off to whichever side it's on
+            if (obs.type !== 'trampoline' && Math.abs(s.ball.vx) < 0.5) {
+              const midX = (obs.x1 + obs.x2) / 2;
+              s.ball.vx += s.ball.x <= midX ? -1.2 : 1.2;
+            }
             if (!s.rimHitThisShot) { s.rimHitThisShot = true; playRim(); }
           }
         }
