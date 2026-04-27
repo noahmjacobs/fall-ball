@@ -402,6 +402,48 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
       s.ball.x += s.ball.vx / SUBSTEPS;
       s.ball.y += s.ball.vy / SUBSTEPS;
 
+      // Scoring check FIRST — before any collision moves the ball
+      // CCD: interpolate x at the moment ball crosses hoop's y-plane
+      for (const hoop of s.hoops) {
+        if (hoop.scored) continue;
+        const crossed = (subPrevBallY < hoop.y && s.ball.y >= hoop.y) || (subPrevBallY > hoop.y && s.ball.y <= hoop.y);
+        if (crossed && Math.abs(s.ball.y - subPrevBallY) > 0.001) {
+          const t = (hoop.y - subPrevBallY) / (s.ball.y - subPrevBallY);
+          const xAtCross = subPrevBallX + t * (s.ball.x - subPrevBallX);
+          const openLeft  = hoop.x - hoop.innerHalf + BALL_R * 0.5;
+          const openRight = hoop.x + hoop.innerHalf - BALL_R * 0.5;
+          if (xAtCross > openLeft && xAtCross < openRight) {
+            hoop.scored = true;
+            s.score++;
+            s.plusOneX = hoop.x;
+            s.plusOneY = hoop.y - 30;
+            s.plusOneAlpha = 1;
+            playSwish();
+            if (s.hoops.every(h => h.scored)) {
+              s.makesThisLevel++;
+              emitParticles(s.particles, hoop.x, hoop.y - 20, 24);
+              s.phase = 'scored'; s.phaseTimer = 55;
+              if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
+                const bonus = s.level;
+                s.score += bonus;
+                s.levelBonus = bonus;
+                s.plusOneAlpha = 0;
+                s.level++; s.makesThisLevel = 0;
+                s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
+                emitParticles(s.particles, CW / 2, ch / 2, 40);
+                playLevelUp();
+              }
+              resolved = true;
+              break;
+            }
+          } else {
+            const dist = xAtCross < openLeft ? openLeft - xAtCross : xAtCross - openRight;
+            if (dist < 22) s.nearMiss = true;
+          }
+        }
+      }
+      if (resolved) break;
+
       // Rim collision for all hoops
       for (const hoop of s.hoops) {
         const RIM_R = hoop.rimThick / 2;
@@ -466,45 +508,6 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
         }
       }
 
-      // Scoring check — CCD: detect y-plane crossing this substep
-      for (const hoop of s.hoops) {
-        if (hoop.scored) continue;
-        const crossed = (subPrevBallY < hoop.y && s.ball.y >= hoop.y) || (subPrevBallY > hoop.y && s.ball.y <= hoop.y);
-        if (crossed && Math.abs(s.ball.y - subPrevBallY) > 0.001) {
-          const t = (hoop.y - subPrevBallY) / (s.ball.y - subPrevBallY);
-          const xAtCross = subPrevBallX + t * (s.ball.x - subPrevBallX);
-          const openLeft  = hoop.x - hoop.innerHalf + BALL_R * 0.5;
-          const openRight = hoop.x + hoop.innerHalf - BALL_R * 0.5;
-          if (xAtCross > openLeft && xAtCross < openRight) {
-            hoop.scored = true;
-            s.score++;
-            s.plusOneX = hoop.x;
-            s.plusOneY = hoop.y - 30;
-            s.plusOneAlpha = 1;
-            playSwish();
-            if (s.hoops.every(h => h.scored)) {
-              s.makesThisLevel++;
-              emitParticles(s.particles, hoop.x, hoop.y - 20, 24);
-              s.phase = 'scored'; s.phaseTimer = 55;
-              if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
-                const bonus = s.level;
-                s.score += bonus;
-                s.levelBonus = bonus;
-                s.plusOneAlpha = 0;
-                s.level++; s.makesThisLevel = 0;
-                s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
-                emitParticles(s.particles, CW / 2, ch / 2, 40);
-                playLevelUp();
-              }
-              resolved = true;
-              break;
-            }
-          } else {
-            const dist = xAtCross < openLeft ? openLeft - xAtCross : xAtCross - openRight;
-            if (dist < 22) s.nearMiss = true;
-          }
-        }
-      }
       if (resolved) break;
 
       if (s.ball.y > ch + BALL_R * 2) {
