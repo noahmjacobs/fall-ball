@@ -8,7 +8,7 @@ const BOUNCE = 0.42;
 const RIM_H = 14;
 const DROP_H = 90;
 
-type HoopPattern = 'still' | 'linear' | 'rectangle' | 'circle' | 'circle_cw' | 'circle_ccw' | 'figure8';
+type HoopPattern = 'still' | 'linear' | 'linear_v' | 'rectangle' | 'circle' | 'circle_cw' | 'circle_ccw' | 'figure8';
 
 interface HoopInstance {
   x: number; y: number;
@@ -17,6 +17,8 @@ interface HoopInstance {
   speed: number;
   innerHalf: number; rimThick: number;
   scored: boolean; lockedOut: boolean;
+  ampX?: number; ampY?: number;
+  frameOffset?: number;
 }
 
 interface LevelCfg {
@@ -34,17 +36,16 @@ function getLevelCfg(level: number): LevelCfg {
   if (level <= 3)  return { innerHalf: 50, rimThick, speed: 1.5, pattern: 'rectangle', makesNeeded: 3 };
   if (level <= 4)  return { innerHalf: 50, rimThick, speed: 1.8, pattern: 'circle',    makesNeeded: 3 };
   if (level <= 5)  return { innerHalf: 50, rimThick, speed: 0,   pattern: 'still',     makesNeeded: 3 };
-  if (level <= 10) return { innerHalf: 44, rimThick, speed: 2.0, pattern: 'linear',    makesNeeded: 3 };
-  if (level <= 15) return { innerHalf: 36, rimThick, speed: 2.8, pattern: 'linear',    makesNeeded: 4 };
-  if (level <= 20) return { innerHalf: 36, rimThick, speed: 3.2, pattern: 'figure8',   makesNeeded: 4 };
-  const ex = level - 20;
-  return { innerHalf: Math.max(24, 36 - ex * 2), rimThick, speed: Math.min(8, 3.8 + ex * 0.25), pattern: 'figure8', makesNeeded: 5 };
+  if (level <= 6)  return { innerHalf: 50, rimThick, speed: 2.0, pattern: 'figure8',   makesNeeded: 3 };
+  if (level <= 9)  return { innerHalf: 44, rimThick, speed: 2.0, pattern: 'linear',    makesNeeded: 3 };
+  if (level <= 10) return { innerHalf: 24, rimThick, speed: 0,   pattern: 'still',     makesNeeded: 3 };
+  return { innerHalf: 24, rimThick, speed: 3.0, pattern: 'figure8', makesNeeded: 3 };
 }
 
 function setupHoops(level: number, shotIdx: number, ch: number, l1y2: number, l1y3: number): HoopInstance[] {
   const rimThick = 10;
-  function h(baseX: number, baseY: number, pattern: HoopPattern, speed: number, innerHalf = 50): HoopInstance {
-    return { x: baseX, y: baseY, baseX, baseY, pattern, speed, innerHalf, rimThick, scored: false, lockedOut: false };
+  function h(baseX: number, baseY: number, pattern: HoopPattern, speed: number, innerHalf = 50, ampX?: number, ampY?: number, frameOffset?: number): HoopInstance {
+    return { x: baseX, y: baseY, baseX, baseY, pattern, speed, innerHalf, rimThick, scored: false, lockedOut: false, ampX, ampY, frameOffset };
   }
   if (level === 1) {
     if (shotIdx === 0) return [h(CW / 2, DROP_H + 80, 'still', 0)];
@@ -71,6 +72,22 @@ function setupHoops(level: number, shotIdx: number, ch: number, l1y2: number, l1
     return [
       h(CW / 2, ch - 265, 'circle_cw',  1.5),
       h(CW / 2, ch - 135, 'circle_ccw', 1.5),
+    ];
+  }
+  if (level === 8) {
+    const playMid = DROP_H + (ch - DROP_H) / 2;
+    return [
+      h(CW / 2, playMid, 'rectangle', 2.0, 50, 125, 230),
+      h(CW / 2, playMid, 'rectangle', 2.0, 50, 125, 230, 30),
+    ];
+  }
+  if (level === 9) {
+    return [h(CW * 0.84, ch * 0.56, 'linear_v', 0.5, 50, undefined, ch * 0.27)];
+  }
+  if (level === 7) {
+    return [
+      h(CW / 2, ch - 260, 'linear', 1.0),
+      h(CW / 2, ch - 120, 'linear', 2.0),
     ];
   }
   const cfg = getLevelCfg(level);
@@ -204,6 +221,26 @@ function makeStars(h: number): Star[] {
   return Array.from({ length: 55 }, () => ({ x: Math.random() * CW, y: Math.random() * h, sz: Math.random() < 0.65 ? 1 : 2, phase: Math.random() * Math.PI * 2 }));
 }
 
+interface Obstacle {
+  x1: number; y1: number;
+  x2: number; y2: number;
+  color: string; thick: number;
+  restitution?: number;
+  friction?: number;
+  label?: string;
+  type?: 'trampoline';
+}
+
+function setupObstacles(level: number, ch: number): Obstacle[] {
+  if (level === 9) {
+    return [
+      { x1: CW / 2, y1: DROP_H + 40, x2: CW - 5, y2: ch * 0.25, color: '#b0b0b0', thick: 5, restitution: 0.80, friction: 0.95 },
+      { x1: 20, y1: ch * 0.78, x2: CW * 0.42, y2: ch * 0.78 + 8, color: '#ffd700', thick: 10, type: 'trampoline', restitution: 0.89, friction: 1.0 },
+    ];
+  }
+  return [];
+}
+
 interface Props {
   onGameOver: (score: number, level: number) => void;
   personalBest: number;
@@ -221,6 +258,7 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
     prevBall: { x: CW / 2, y: DROP_H / 2 + 15 },
     score: 0, level: 1, lives: 3, makesThisLevel: 0, frame: 0,
     hoops: [] as HoopInstance[],
+    obstacles: [] as Obstacle[],
     particles: [] as Particle[],
     stars: [] as Star[],
     shakeFrames: 0, shakeIntensity: 0, phaseTimer: 0,
@@ -251,6 +289,7 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
     s.frame = 20; // sin(0)=0 puts moving hoops at center; start mid-motion instead
     s.hoops = setupHoops(startLevel, 0, h, s.level1Shot2Y, s.level1Shot3Y);
     positionHoops(s.hoops, s.frame);
+    s.obstacles = setupObstacles(startLevel, h);
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     canvas.width = CW * dpr;
     canvas.height = h * dpr;
@@ -264,35 +303,43 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
 
   function positionHoops(hoops: HoopInstance[], frame: number) {
     for (const hoop of hoops) {
+      const f = frame - (hoop.frameOffset ?? 0);
       const spd = hoop.speed * 0.018;
       const amp = CW / 2 - (hoop.innerHalf + hoop.rimThick) - 22;
       if (hoop.pattern === 'still') {
         // static
       } else if (hoop.pattern === 'linear') {
-        hoop.x = hoop.baseX + Math.sin(frame * spd) * amp;
+        hoop.x = hoop.baseX + Math.sin(f * spd) * amp;
+      } else if (hoop.pattern === 'linear_v') {
+        const ay = hoop.ampY ?? amp;
+        hoop.y = hoop.baseY + Math.sin(f * spd) * ay;
       } else if (hoop.pattern === 'rectangle') {
-        const t = (frame * spd) % (Math.PI * 2);
+        const ax = hoop.ampX ?? amp;
+        const ay = hoop.ampY ?? amp * 0.5;
+        const t = (f * spd) % (Math.PI * 2);
         const side = Math.floor(t / (Math.PI / 2));
         const frac = (t % (Math.PI / 2)) / (Math.PI / 2);
         let rx = 0, ry = 0;
-        if (side === 0)      { rx = -1 + 2 * frac; ry =  0.5; }
-        else if (side === 1) { rx =  1;             ry =  0.5 - frac; }
-        else if (side === 2) { rx =  1 - 2 * frac;  ry = -0.5; }
-        else                 { rx = -1;             ry = -0.5 + frac; }
-        hoop.x = hoop.baseX + rx * amp;
-        hoop.y = hoop.baseY + ry * amp;
+        if (side === 0)      { rx = -1 + 2 * frac; ry =  1; }
+        else if (side === 1) { rx =  1;             ry =  1 - 2 * frac; }
+        else if (side === 2) { rx =  1 - 2 * frac;  ry = -1; }
+        else                 { rx = -1;             ry = -1 + 2 * frac; }
+        hoop.x = hoop.baseX + rx * ax;
+        hoop.y = hoop.baseY + ry * ay;
       } else if (hoop.pattern === 'circle') {
-        hoop.x = hoop.baseX + Math.cos(frame * spd) * amp;
-        hoop.y = hoop.baseY + Math.sin(frame * spd) * Math.min(amp, 75);
+        const ax = hoop.ampX ?? amp;
+        const ay = hoop.ampY ?? Math.min(amp, 75);
+        hoop.x = hoop.baseX + Math.cos(f * spd) * ax;
+        hoop.y = hoop.baseY + Math.sin(f * spd) * ay;
       } else if (hoop.pattern === 'circle_cw') {
-        hoop.x = hoop.baseX + Math.cos(frame * spd) * amp;
-        hoop.y = hoop.baseY + Math.sin(frame * spd) * 28;
+        hoop.x = hoop.baseX + Math.cos(f * spd) * amp;
+        hoop.y = hoop.baseY + Math.sin(f * spd) * 28;
       } else if (hoop.pattern === 'circle_ccw') {
-        hoop.x = hoop.baseX - Math.cos(frame * spd) * amp;
-        hoop.y = hoop.baseY - Math.sin(frame * spd) * 28;
+        hoop.x = hoop.baseX - Math.cos(f * spd) * amp;
+        hoop.y = hoop.baseY - Math.sin(f * spd) * 28;
       } else { // figure8
-        hoop.x = hoop.baseX + Math.sin(frame * spd) * amp;
-        hoop.y = hoop.baseY + Math.sin(frame * spd * 2) * 18;
+        hoop.x = hoop.baseX + Math.sin(f * spd) * amp;
+        hoop.y = hoop.baseY + Math.sin(f * spd * 2) * 18;
       }
     }
   }
@@ -333,6 +380,7 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
         if (wasLevelUp || s.level === 1 || s.level === 5) {
           s.hoops = setupHoops(s.level, s.makesThisLevel, ch, s.level1Shot2Y, s.level1Shot3Y);
           positionHoops(s.hoops, s.frame);
+          s.obstacles = setupObstacles(s.level, ch);
         } else {
           for (const hoop of s.hoops) { hoop.scored = false; hoop.lockedOut = false; }
         }
@@ -348,6 +396,8 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
     const SUBSTEPS = 3;
     let resolved = false;
     for (let sub = 0; sub < SUBSTEPS && !resolved; sub++) {
+      const subPrevBallX = s.ball.x;
+      const subPrevBallY = s.ball.y;
       s.ball.vy += GRAVITY / SUBSTEPS;
       s.ball.x += s.ball.vx / SUBSTEPS;
       s.ball.y += s.ball.vy / SUBSTEPS;
@@ -375,45 +425,67 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
         }
       }
 
-      // Scoring check for all hoops
+      // Obstacle collisions
+      for (const obs of s.obstacles) {
+        const odx = obs.x2 - obs.x1, ody = obs.y2 - obs.y1;
+        const len2 = odx * odx + ody * ody;
+        if (len2 === 0) continue;
+        let t = ((s.ball.x - obs.x1) * odx + (s.ball.y - obs.y1) * ody) / len2;
+        t = Math.max(0, Math.min(1, t));
+        const cx = obs.x1 + t * odx, cy = obs.y1 + t * ody;
+        const ex = s.ball.x - cx, ey = s.ball.y - cy;
+        const dist = Math.sqrt(ex * ex + ey * ey);
+        if (dist < BALL_R && dist > 0.001) {
+          const nx = ex / dist, ny = ey / dist;
+          s.ball.x = cx + nx * (BALL_R + 0.5);
+          s.ball.y = cy + ny * (BALL_R + 0.5);
+          const restitution = obs.restitution ?? BOUNCE;
+          const friction = obs.friction ?? 0.85;
+          const dot = s.ball.vx * nx + s.ball.vy * ny;
+          const tvx = s.ball.vx - dot * nx, tvy = s.ball.vy - dot * ny;
+          s.ball.vx = tvx * friction + (-dot * nx) * restitution;
+          s.ball.vy = tvy * friction + (-dot * ny) * restitution;
+          if (!s.rimHitThisShot) { s.rimHitThisShot = true; playRim(); }
+        }
+      }
+
+      // Scoring check — CCD: detect y-plane crossing this substep
       for (const hoop of s.hoops) {
-        if (hoop.lockedOut || hoop.scored) continue;
-        if (s.ball.vy > 0) {
+        if (hoop.scored) continue;
+        const crossed = (subPrevBallY < hoop.y && s.ball.y >= hoop.y) || (subPrevBallY > hoop.y && s.ball.y <= hoop.y);
+        if (crossed && Math.abs(s.ball.y - subPrevBallY) > 0.001) {
+          const t = (hoop.y - subPrevBallY) / (s.ball.y - subPrevBallY);
+          const xAtCross = subPrevBallX + t * (s.ball.x - subPrevBallX);
           const openLeft  = hoop.x - hoop.innerHalf + BALL_R * 0.5;
           const openRight = hoop.x + hoop.innerHalf - BALL_R * 0.5;
-          const inZone = s.ball.y >= hoop.y - BALL_R && s.ball.y <= hoop.y + BALL_R;
-          if (inZone) {
-            if (s.ball.x > openLeft && s.ball.x < openRight) {
-              hoop.scored = true;
-              s.score++;
-              s.plusOneX = hoop.x;
-              s.plusOneY = hoop.y - 30;
-              s.plusOneAlpha = 1;
-              playSwish();
-              // Shot complete when every hoop is scored
-              if (s.hoops.every(h => h.scored)) {
-                s.makesThisLevel++;
-                emitParticles(s.particles, hoop.x, hoop.y - 20, 24);
-                s.phase = 'scored'; s.phaseTimer = 55;
-                if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
-                  const bonus = s.level;
-                  s.score += bonus;
-                  s.levelBonus = bonus;
-                  s.plusOneAlpha = 0;
-                  s.level++; s.makesThisLevel = 0;
-                  s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
-                  emitParticles(s.particles, CW / 2, ch / 2, 40);
-                  playLevelUp();
-                }
-                resolved = true;
-                break;
+          if (xAtCross > openLeft && xAtCross < openRight) {
+            hoop.scored = true;
+            s.score++;
+            s.plusOneX = hoop.x;
+            s.plusOneY = hoop.y - 30;
+            s.plusOneAlpha = 1;
+            playSwish();
+            if (s.hoops.every(h => h.scored)) {
+              s.makesThisLevel++;
+              emitParticles(s.particles, hoop.x, hoop.y - 20, 24);
+              s.phase = 'scored'; s.phaseTimer = 55;
+              if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
+                const bonus = s.level;
+                s.score += bonus;
+                s.levelBonus = bonus;
+                s.plusOneAlpha = 0;
+                s.level++; s.makesThisLevel = 0;
+                s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
+                emitParticles(s.particles, CW / 2, ch / 2, 40);
+                playLevelUp();
               }
-            } else {
-              const dist = s.ball.x < openLeft ? openLeft - s.ball.x : s.ball.x - openRight;
-              if (dist < 22) s.nearMiss = true;
+              resolved = true;
+              break;
             }
+          } else {
+            const dist = xAtCross < openLeft ? openLeft - xAtCross : xAtCross - openRight;
+            if (dist < 22) s.nearMiss = true;
           }
-          if (s.ball.y > hoop.y + BALL_R * 2) hoop.lockedOut = true;
         }
       }
       if (resolved) break;
@@ -486,6 +558,43 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
       ctx.fillRect(Math.round(p.x), Math.round(p.y), Math.round(p.sz), Math.round(p.sz));
     }
     ctx.globalAlpha = 1;
+    ctx.lineCap = 'round';
+    for (const obs of s.obstacles) {
+      if (obs.type === 'trampoline') {
+        const legLen = 22;
+        // Legs
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'square';
+        ctx.beginPath(); ctx.moveTo(obs.x1, obs.y1); ctx.lineTo(obs.x1, obs.y1 + legLen); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(obs.x2, obs.y2); ctx.lineTo(obs.x2, obs.y2 + legLen); ctx.stroke();
+        // Yellow frame
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 10;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(obs.x1, obs.y1); ctx.lineTo(obs.x2, obs.y2); ctx.stroke();
+        // Black mat
+        ctx.strokeStyle = '#111111';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'butt';
+        ctx.beginPath(); ctx.moveTo(obs.x1 + 3, obs.y1); ctx.lineTo(obs.x2 - 3, obs.y2); ctx.stroke();
+      } else {
+        ctx.strokeStyle = obs.color;
+        ctx.lineWidth = obs.thick;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(obs.x1, obs.y1);
+        ctx.lineTo(obs.x2, obs.y2);
+        ctx.stroke();
+        if (obs.label) {
+          const mx = (obs.x1 + obs.x2) / 2, my = (obs.y1 + obs.y2) / 2;
+          ctx.fillStyle = obs.color;
+          ctx.font = '7px "Press Start 2P"';
+          ctx.textAlign = 'center';
+          ctx.fillText(obs.label, mx, my - 8);
+        }
+      }
+    }
     if (s.ball.y < ch + BALL_R * 3) drawBallSkin(ctx, ballSkin, s.ball.x, s.ball.y, BALL_R);
     for (const hoop of s.hoops) drawHoop(ctx, hoop.x, hoop.y, hoop.innerHalf, hoop.rimThick);
     if (s.plusOneAlpha > 0.01) {
