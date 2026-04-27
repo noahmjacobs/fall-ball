@@ -115,11 +115,11 @@ export default function StartScreen({ onPlay, onLeaderboard }: Props) {
       ctx.strokeRect(W / 2 - 145, htpY - 22, 290, 52);
 
       ctx.fillStyle = '#aaaaff';
-      ctx.font = "7px 'Press Start 2P', monospace";
+      ctx.font = "9px 'Press Start 2P', monospace";
       ctx.textAlign = 'center';
       ctx.fillText('HOW TO PLAY', W / 2, htpY - 8);
       ctx.fillStyle = '#cccccc';
-      ctx.font = "6px 'Press Start 2P', monospace";
+      ctx.font = "8px 'Press Start 2P', monospace";
       ctx.fillText('DRAG TOP → RELEASE → SCORE!', W / 2, htpY + 10);
 
       rafRef.current = requestAnimationFrame(render);

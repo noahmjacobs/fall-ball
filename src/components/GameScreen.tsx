@@ -32,10 +32,10 @@ function getLevelCfg(level: number): LevelCfg {
   };
 }
 
-function getLevel1HoopPos(makes: number, ch: number): { x: number; y: number } {
-  if (makes === 0) return { x: CW / 2, y: ch - 170 };
-  if (makes === 1) return { x: CW - 100, y: ch - 120 };
-  return { x: 100, y: ch - 120 };
+function getLevel1HoopPos(makes: number, ch: number, shot2Y: number, shot3Y: number): { x: number; y: number } {
+  if (makes === 0) return { x: CW / 2, y: DROP_H + 80 };
+  if (makes === 1) return { x: CW - 100, y: shot2Y };
+  return { x: 100, y: shot3Y };
 }
 
 let audioCtx: AudioContext | null = null;
@@ -194,9 +194,12 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
     shakeFrames: 0, shakeIntensity: 0, phaseTimer: 0,
     rimHitThisShot: false,
     plusOneAlpha: 0, plusOneY: 0, levelUpAlpha: 0, canvasHeight: 0,
+    showDragHint: true,
     nearMiss: false, hasPassedHoop: false,
-    missType: 'none' as 'none' | 'near' | 'airball',
+    missType: 'none' as 'none' | 'close' | 'airball',
+    closeToggle: false,
     levelBonus: 0,
+    level1Shot2Y: 0, level1Shot3Y: 0,
   });
   const rafRef = useRef(0);
   const canvasHeight = useRef(Math.min(window.innerHeight, 844));
@@ -210,10 +213,16 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
     s.canvasHeight = h;
     s.hoopY = h - 170;
     s.stars = makeStars(h);
+    s.level1Shot2Y = h - 100 - Math.random() * 180;
+    s.level1Shot3Y = h - 100 - Math.random() * 180;
     s.ball = { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 };
     s.prevBall = { x: CW / 2, y: DROP_H / 2 + 15 };
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = CW * dpr;
+    canvas.height = h * dpr;
     const ctx = canvas.getContext('2d')!;
     ctx.imageSmoothingEnabled = false;
+    ctx.scale(dpr, dpr);
     function loop() { update(ctx); render(ctx); rafRef.current = requestAnimationFrame(loop); }
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
@@ -227,7 +236,7 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
     const amp = CW / 2 - (cfg.innerHalf + cfg.rimThick) - 22;
     const spd = cfg.speed * 0.018;
     if (s.level === 1) {
-      const pos = getLevel1HoopPos(s.makesThisLevel, ch);
+      const pos = getLevel1HoopPos(s.makesThisLevel, ch, s.level1Shot2Y, s.level1Shot3Y);
       s.hoopX = pos.x;
       s.hoopY = pos.y;
     } else if (cfg.pattern === 'still') {
@@ -260,67 +269,80 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
       return;
     }
     if (s.phase !== 'dropping') return;
-    s.prevBall = { x: s.ball.x, y: s.ball.y };
-    s.ball.vy += GRAVITY;
-    s.ball.x += s.ball.vx;
-    s.ball.y += s.ball.vy;
     const cfg2 = getLevelCfg(s.level);
-    const outerHalf = cfg2.innerHalf + cfg2.rimThick;
-    const rims = [
-      { x: s.hoopX - outerHalf, y: s.hoopY - RIM_H / 2, w: cfg2.rimThick, h: RIM_H },
-      { x: s.hoopX + cfg2.innerHalf, y: s.hoopY - RIM_H / 2, w: cfg2.rimThick, h: RIM_H },
+    const RIM_R = cfg2.rimThick / 2;
+    const rimCircles = [
+      { x: s.hoopX - cfg2.innerHalf - cfg2.rimThick / 2, y: s.hoopY },
+      { x: s.hoopX + cfg2.innerHalf + cfg2.rimThick / 2, y: s.hoopY },
     ];
-    for (const rect of rims) {
-      const nx = Math.max(rect.x, Math.min(s.ball.x, rect.x + rect.w));
-      const ny = Math.max(rect.y, Math.min(s.ball.y, rect.y + rect.h));
-      const dx = s.ball.x - nx, dy = s.ball.y - ny;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < BALL_R && dist > 0.001) {
-        const enx = dx / dist, eny = dy / dist;
-        s.ball.x = nx + enx * (BALL_R + 0.5);
-        s.ball.y = ny + eny * (BALL_R + 0.5);
-        const dot = s.ball.vx * enx + s.ball.vy * eny;
-        s.ball.vx = (s.ball.vx - 2 * dot * enx) * BOUNCE;
-        s.ball.vy = (s.ball.vy - 2 * dot * eny) * BOUNCE;
-        if (!s.rimHitThisShot) { s.rimHitThisShot = true; playRim(); }
-      }
-    }
-    if (!s.hasPassedHoop && s.prevBall.y < s.hoopY && s.ball.y >= s.hoopY) {
-      s.hasPassedHoop = true;
-      const t = (s.hoopY - s.prevBall.y) / (s.ball.y - s.prevBall.y);
-      const xAtRim = s.prevBall.x + t * (s.ball.x - s.prevBall.x);
-      const openLeft = s.hoopX - cfg2.innerHalf + BALL_R * 0.5;
-      const openRight = s.hoopX + cfg2.innerHalf - BALL_R * 0.5;
-      if (xAtRim > openLeft && xAtRim < openRight) {
-        s.score++; s.makesThisLevel++;
-        s.phase = 'scored'; s.phaseTimer = 55;
-        s.plusOneY = s.hoopY - 30; s.plusOneAlpha = 1;
-        emitParticles(s.particles, s.hoopX, s.hoopY - 20, 24);
-        playSwish();
-        if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
-          const bonus = s.level;
-          s.score += bonus;
-          s.levelBonus = bonus;
-          s.level++; s.makesThisLevel = 0;
-          s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
-          emitParticles(s.particles, CW / 2, ch / 2, 40);
-          playLevelUp();
+    const SUBSTEPS = 3;
+    let resolved = false;
+    for (let sub = 0; sub < SUBSTEPS && !resolved; sub++) {
+      const prevX = s.ball.x, prevY = s.ball.y;
+      s.ball.vy += GRAVITY / SUBSTEPS;
+      s.ball.x += s.ball.vx / SUBSTEPS;
+      s.ball.y += s.ball.vy / SUBSTEPS;
+      for (const rim of rimCircles) {
+        const dx = s.ball.x - rim.x, dy = s.ball.y - rim.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = BALL_R + RIM_R;
+        if (dist < minDist && dist > 0.001) {
+          const nx = dx / dist, ny = dy / dist;
+          s.ball.x = rim.x + nx * (minDist + 0.5);
+          s.ball.y = rim.y + ny * (minDist + 0.5);
+          const dot = s.ball.vx * nx + s.ball.vy * ny;
+          s.ball.vx = (s.ball.vx - 2 * dot * nx) * BOUNCE;
+          s.ball.vy = (s.ball.vy - 2 * dot * ny) * BOUNCE;
+          if (!s.rimHitThisShot) { s.rimHitThisShot = true; playRim(); }
         }
-        return;
-      } else {
-        const distToOpening = xAtRim < openLeft ? openLeft - xAtRim : xAtRim - openRight;
-        s.nearMiss = distToOpening < 22;
+      }
+      if (!s.hasPassedHoop && prevY < s.hoopY && s.ball.y >= s.hoopY) {
+        s.hasPassedHoop = true;
+        const t = (s.hoopY - prevY) / (s.ball.y - prevY);
+        const xAtRim = prevX + t * (s.ball.x - prevX);
+        const openLeft = s.hoopX - cfg2.innerHalf + BALL_R * 0.5;
+        const openRight = s.hoopX + cfg2.innerHalf - BALL_R * 0.5;
+        if (xAtRim > openLeft && xAtRim < openRight) {
+          s.score++; s.makesThisLevel++;
+          s.phase = 'scored'; s.phaseTimer = 55;
+          s.plusOneY = s.hoopY - 30; s.plusOneAlpha = 1;
+          emitParticles(s.particles, s.hoopX, s.hoopY - 20, 24);
+          playSwish();
+          if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
+            const bonus = s.level;
+            s.score += bonus;
+            s.levelBonus = bonus;
+            s.plusOneAlpha = 0;
+            s.level++; s.makesThisLevel = 0;
+            s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
+            emitParticles(s.particles, CW / 2, ch / 2, 40);
+            playLevelUp();
+          }
+          resolved = true;
+          break;
+        } else {
+          const distToOpening = xAtRim < openLeft ? openLeft - xAtRim : xAtRim - openRight;
+          s.nearMiss = distToOpening < 22;
+        }
+      }
+      if (s.ball.y > ch + BALL_R * 2) {
+        s.lives = Math.max(0, s.lives - 1);
+        s.phase = 'missed'; s.phaseTimer = s.lives <= 0 ? 90 : 50;
+        s.shakeFrames = 16; s.shakeIntensity = 9;
+        if (s.nearMiss || s.rimHitThisShot) {
+          s.missType = 'close';
+          s.closeToggle = !s.closeToggle;
+        } else {
+          s.missType = 'airball';
+        }
+        s.nearMiss = false;
+        s.hasPassedHoop = false;
+        playMiss();
+        resolved = true;
+        break;
       }
     }
-    if (s.ball.y > ch + BALL_R * 2) {
-      s.lives = Math.max(0, s.lives - 1);
-      s.phase = 'missed'; s.phaseTimer = s.lives <= 0 ? 90 : 50;
-      s.shakeFrames = 16; s.shakeIntensity = 9;
-      s.missType = s.nearMiss ? 'near' : 'airball';
-      s.nearMiss = false;
-      s.hasPassedHoop = false;
-      playMiss();
-    }
+    s.prevBall = { x: s.ball.x, y: s.ball.y };
   }
 
   function render(ctx: CanvasRenderingContext2D) {
@@ -344,9 +366,19 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
     ctx.setLineDash([6, 4]);
     ctx.beginPath(); ctx.moveTo(0, DROP_H); ctx.lineTo(CW, DROP_H); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#00ffff55';
-    ctx.font = '7px "Press Start 2P"'; ctx.textAlign = 'center';
-    ctx.fillText('DRAG HERE', CW / 2, DROP_H - 8);
+    if (s.showDragHint && s.phase === 'aiming') {
+      const pulse = 0.65 + 0.35 * Math.sin(s.frame * 0.07);
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = 'rgba(0,0,20,0.75)';
+      ctx.fillRect(16, ch / 2 - 46, CW - 32, 76);
+      ctx.fillStyle = '#00ffff';
+      ctx.font = '16px "Press Start 2P"'; ctx.textAlign = 'center';
+      ctx.fillText('◄  DRAG BALL  ►', CW / 2, ch / 2 - 12);
+      ctx.fillStyle = '#ffffff99';
+      ctx.font = '8px "Press Start 2P"';
+      ctx.fillText('LEFT OR RIGHT TO AIM', CW / 2, ch / 2 + 18);
+      ctx.globalAlpha = 1;
+    }
     if (s.phase === 'aiming') {
       for (let i = 1; i <= 9; i++) {
         const dotY = s.ball.y + i * 22;
@@ -375,9 +407,9 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
       const missAlpha = Math.min(1, s.phaseTimer / 15);
       ctx.globalAlpha = missAlpha;
       ctx.font = '14px "Press Start 2P"'; ctx.textAlign = 'center';
-      if (s.missType === 'near') {
+      if (s.missType === 'close') {
         ctx.fillStyle = '#ffd700';
-        ctx.fillText('SO CLOSE!', CW / 2, ch / 2 - 20);
+        ctx.fillText(s.closeToggle ? 'ALMOST!' : 'CLOSE!', CW / 2, ch / 2 - 20);
       } else {
         ctx.fillStyle = '#ff4444';
         ctx.fillText('AIRBALL!', CW / 2, ch / 2 - 20);
@@ -398,18 +430,18 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
       ctx.globalAlpha = 1;
     }
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(0, 0, CW, 36);
-    ctx.font = '8px "Press Start 2P"'; ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffd700'; ctx.fillText(`${s.score}`, 12, 22);
-    ctx.fillStyle = '#888'; ctx.font = '5px "Press Start 2P"'; ctx.fillText('SCORE', 12, 12);
-    ctx.fillStyle = '#00ffff'; ctx.font = '8px "Press Start 2P"'; ctx.textAlign = 'center';
-    ctx.fillText(`LVL ${s.level}`, CW / 2, 22);
-    ctx.fillStyle = '#888'; ctx.font = '5px "Press Start 2P"'; ctx.fillText('LEVEL', CW / 2, 12);
-    ctx.textAlign = 'right'; ctx.font = '10px "Press Start 2P"';
+    ctx.fillRect(0, 0, CW, 48);
+    ctx.font = '11px "Press Start 2P"'; ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffd700'; ctx.fillText(`${s.score}`, 12, 32);
+    ctx.fillStyle = '#888'; ctx.font = '7px "Press Start 2P"'; ctx.fillText('SCORE', 12, 14);
+    ctx.fillStyle = '#00ffff'; ctx.font = '11px "Press Start 2P"'; ctx.textAlign = 'center';
+    ctx.fillText(`LVL ${s.level}`, CW / 2, 32);
+    ctx.fillStyle = '#888'; ctx.font = '7px "Press Start 2P"'; ctx.fillText('LEVEL', CW / 2, 14);
+    ctx.textAlign = 'right'; ctx.font = '12px "Press Start 2P"';
     let heartsStr = '';
     for (let i = 0; i < 3; i++) heartsStr += i < s.lives ? '♥' : '♡';
-    ctx.fillStyle = '#ff4444'; ctx.fillText(heartsStr, CW - 10, 22);
-    const barH = 8, barY = ch - barH - 4;
+    ctx.fillStyle = '#ff4444'; ctx.fillText(heartsStr, CW - 10, 32);
+    const barH = 10, barY = ch - barH - 4;
     const prog = Math.min(1, s.makesThisLevel / cfg.makesNeeded);
     ctx.fillStyle = '#111128'; ctx.fillRect(0, barY, CW, barH);
     ctx.fillStyle = '#00ffff'; ctx.fillRect(0, barY, Math.round(CW * prog), barH);
@@ -418,8 +450,8 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
       const bx = Math.round(CW * i / cfg.makesNeeded);
       ctx.fillRect(bx - 1, barY, 2, barH);
     }
-    ctx.font = '5px "Press Start 2P"'; ctx.fillStyle = '#ffffff88'; ctx.textAlign = 'center';
-    ctx.fillText(`${s.makesThisLevel}/${cfg.makesNeeded} TO NEXT LEVEL`, CW / 2, barY - 3);
+    ctx.font = '8px "Press Start 2P"'; ctx.fillStyle = '#ffffff88'; ctx.textAlign = 'center';
+    ctx.fillText(`${s.makesThisLevel}/${cfg.makesNeeded} TO NEXT LEVEL`, CW / 2, barY - 5);
     ctx.restore();
   }
 
@@ -443,6 +475,7 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
     e.preventDefault();
     try { getAudio(); } catch (_) {}
     const s = stateRef.current;
+    s.showDragHint = false;
     if (s.phase !== 'aiming') return;
     const y = getY(e);
     if (y > DROP_H + 10) return;
