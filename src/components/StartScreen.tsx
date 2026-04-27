@@ -1,9 +1,12 @@
 import React, { useEffect, useRef } from 'react';
+import { drawBallSkin, type BallSkin } from './BallSkinsScreen';
 
 interface Props {
   onPlay: () => void;
   onLeaderboard: () => void;
   onArcade: () => void;
+  onSkins: () => void;
+  ballSkin?: BallSkin;
 }
 
 interface Star {
@@ -15,11 +18,13 @@ interface Star {
   color: string;
 }
 
-export default function StartScreen({ onPlay, onLeaderboard, onArcade }: Props) {
+export default function StartScreen({ onPlay, onLeaderboard, onArcade, onSkins, ballSkin = 'basketball' }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
   const frameRef = useRef(0);
   const starsRef = useRef<Star[]>([]);
+  const skinRef = useRef<BallSkin>(ballSkin);
+  skinRef.current = ballSkin;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -78,22 +83,7 @@ export default function StartScreen({ onPlay, onLeaderboard, onArcade }: Props) 
       }
       ctx.globalAlpha = 1;
 
-      drawPixelCircle(ballX, ballY, ballR, '#e87722');
-
-      ctx.strokeStyle = '#8B3A00';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(ballX, ballY, ballR * 0.7, Math.PI * 0.15, Math.PI * 0.85);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(ballX, ballY, ballR * 0.7, Math.PI * 1.15, Math.PI * 1.85);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(ballX, ballY, ballR * 0.7, Math.PI * 1.65, Math.PI * 2.35);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(ballX, ballY, ballR * 0.7, Math.PI * 0.65, Math.PI * 1.35);
-      ctx.stroke();
+      drawBallSkin(ctx, skinRef.current, ballX, ballY, ballR);
 
       const titleY = H * 0.14;
       ctx.fillStyle = '#8B1400';
@@ -172,11 +162,11 @@ export default function StartScreen({ onPlay, onLeaderboard, onArcade }: Props) 
             border: '3px solid #00ffff88',
             boxShadow: '4px 4px 0 #006666',
             fontFamily: "'Press Start 2P', monospace",
-            fontSize: 11,
-            padding: '12px 32px',
+            fontSize: 9,
+            padding: '11px 24px',
             cursor: 'pointer',
             letterSpacing: 2,
-            minWidth: 220,
+            minWidth: 200,
             transition: 'transform 0.05s',
           }}
           onMouseDown={e => (e.currentTarget.style.transform = 'translate(3px,3px)')}
@@ -184,7 +174,7 @@ export default function StartScreen({ onPlay, onLeaderboard, onArcade }: Props) 
           onTouchStart={e => (e.currentTarget.style.transform = 'translate(3px,3px)')}
           onTouchEnd={e => (e.currentTarget.style.transform = '')}
         >
-          🕹️ ARCADE
+          ARCADE
         </button>
 
         <button
@@ -209,7 +199,7 @@ export default function StartScreen({ onPlay, onLeaderboard, onArcade }: Props) 
           onTouchStart={e => (e.currentTarget.style.transform = 'translate(3px,3px)')}
           onTouchEnd={e => (e.currentTarget.style.transform = '')}
         >
-          ▶ PLAY
+          PLAY
         </button>
 
         <button
@@ -221,18 +211,40 @@ export default function StartScreen({ onPlay, onLeaderboard, onArcade }: Props) 
             boxShadow: '4px 4px 0 #8B0048',
             fontFamily: "'Press Start 2P', monospace",
             fontSize: 9,
-            padding: '10px 24px',
+            padding: '11px 24px',
             cursor: 'pointer',
             letterSpacing: 2,
             imageRendering: 'pixelated',
-            minWidth: 180,
+            minWidth: 200,
           }}
           onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
           onMouseUp={e => (e.currentTarget.style.transform = '')}
           onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
           onTouchEnd={e => (e.currentTarget.style.transform = '')}
         >
-          🏆 LEADERBOARD
+          LEADERBOARD
+        </button>
+
+        <button
+          onClick={onSkins}
+          style={{
+            background: 'transparent',
+            color: '#ffd700',
+            border: '3px solid #ffd70066',
+            boxShadow: '4px 4px 0 rgba(0,0,0,0.4)',
+            fontFamily: "'Press Start 2P', monospace",
+            fontSize: 9,
+            padding: '11px 24px',
+            cursor: 'pointer',
+            letterSpacing: 2,
+            minWidth: 200,
+          }}
+          onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+          onMouseUp={e => (e.currentTarget.style.transform = '')}
+          onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+          onTouchEnd={e => (e.currentTarget.style.transform = '')}
+        >
+          BALL SKINS
         </button>
       </div>
     </div>
