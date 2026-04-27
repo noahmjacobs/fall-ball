@@ -427,6 +427,8 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
 
       // Obstacle collisions
       for (const obs of s.obstacles) {
+        const restitution = obs.restitution ?? BOUNCE;
+        const friction = obs.friction ?? 0.85;
         const odx = obs.x2 - obs.x1, ody = obs.y2 - obs.y1;
         const len2 = odx * odx + ody * ody;
         if (len2 === 0) continue;
@@ -439,13 +441,28 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
           const nx = ex / dist, ny = ey / dist;
           s.ball.x = cx + nx * (BALL_R + 0.5);
           s.ball.y = cy + ny * (BALL_R + 0.5);
-          const restitution = obs.restitution ?? BOUNCE;
-          const friction = obs.friction ?? 0.85;
           const dot = s.ball.vx * nx + s.ball.vy * ny;
           const tvx = s.ball.vx - dot * nx, tvy = s.ball.vy - dot * ny;
           s.ball.vx = tvx * friction + (-dot * nx) * restitution;
           s.ball.vy = tvy * friction + (-dot * ny) * restitution;
           if (!s.rimHitThisShot) { s.rimHitThisShot = true; playRim(); }
+        }
+        // Endpoint circle collisions — prevents ball sticking at corners
+        const endR = obs.thick / 2;
+        const minDist = BALL_R + endR;
+        for (const ep of [{ x: obs.x1, y: obs.y1 }, { x: obs.x2, y: obs.y2 }]) {
+          const dx = s.ball.x - ep.x, dy = s.ball.y - ep.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < minDist && d > 0.001) {
+            const nx = dx / d, ny = dy / d;
+            s.ball.x = ep.x + nx * (minDist + 0.5);
+            s.ball.y = ep.y + ny * (minDist + 0.5);
+            const dot = s.ball.vx * nx + s.ball.vy * ny;
+            const tvx = s.ball.vx - dot * nx, tvy = s.ball.vy - dot * ny;
+            s.ball.vx = tvx * friction + (-dot * nx) * restitution;
+            s.ball.vy = tvy * friction + (-dot * ny) * restitution;
+            if (!s.rimHitThisShot) { s.rimHitThisShot = true; playRim(); }
+          }
         }
       }
 
