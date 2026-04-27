@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
+import { drawBallSkin, type BallSkin } from './BallSkinsScreen';
 
 const CW = 390;
 const BALL_R = 14;
@@ -7,38 +8,73 @@ const BOUNCE = 0.42;
 const RIM_H = 14;
 const DROP_H = 90;
 
+type HoopPattern = 'still' | 'linear' | 'rectangle' | 'circle' | 'circle_cw' | 'circle_ccw' | 'figure8';
+
+interface HoopInstance {
+  x: number; y: number;
+  baseX: number; baseY: number;
+  pattern: HoopPattern;
+  speed: number;
+  innerHalf: number; rimThick: number;
+  scored: boolean; lockedOut: boolean;
+}
+
 interface LevelCfg {
   innerHalf: number;
   rimThick: number;
   speed: number;
-  pattern: 'still' | 'linear' | 'rectangle' | 'circle' | 'figure8';
+  pattern: HoopPattern;
   makesNeeded: number;
 }
 
 function getLevelCfg(level: number): LevelCfg {
   const rimThick = 10;
-  if (level <= 1)  return { innerHalf: 50, rimThick, speed: 0,    pattern: 'still',     makesNeeded: 3 };
-  if (level <= 2)  return { innerHalf: 50, rimThick, speed: 1.5,  pattern: 'linear',    makesNeeded: 3 };
-  if (level <= 3)  return { innerHalf: 50, rimThick, speed: 1.5,  pattern: 'rectangle', makesNeeded: 3 };
-  if (level <= 4)  return { innerHalf: 50, rimThick, speed: 1.8,  pattern: 'circle',    makesNeeded: 3 };
-  if (level <= 5)  return { innerHalf: 50, rimThick, speed: 1.5,  pattern: 'linear',    makesNeeded: 3 };
-  if (level <= 10) return { innerHalf: 44, rimThick, speed: 2.0,  pattern: 'linear',  makesNeeded: 3 };
-  if (level <= 15) return { innerHalf: 36, rimThick, speed: 2.8,  pattern: 'linear',  makesNeeded: 4 };
-  if (level <= 20) return { innerHalf: 36, rimThick, speed: 3.2,  pattern: 'figure8', makesNeeded: 4 };
+  if (level <= 1)  return { innerHalf: 50, rimThick, speed: 0,   pattern: 'still',     makesNeeded: 3 };
+  if (level <= 2)  return { innerHalf: 50, rimThick, speed: 1.5, pattern: 'linear',    makesNeeded: 3 };
+  if (level <= 3)  return { innerHalf: 50, rimThick, speed: 1.5, pattern: 'rectangle', makesNeeded: 3 };
+  if (level <= 4)  return { innerHalf: 50, rimThick, speed: 1.8, pattern: 'circle',    makesNeeded: 3 };
+  if (level <= 5)  return { innerHalf: 50, rimThick, speed: 0,   pattern: 'still',     makesNeeded: 3 };
+  if (level <= 10) return { innerHalf: 44, rimThick, speed: 2.0, pattern: 'linear',    makesNeeded: 3 };
+  if (level <= 15) return { innerHalf: 36, rimThick, speed: 2.8, pattern: 'linear',    makesNeeded: 4 };
+  if (level <= 20) return { innerHalf: 36, rimThick, speed: 3.2, pattern: 'figure8',   makesNeeded: 4 };
   const ex = level - 20;
-  return {
-    innerHalf: Math.max(24, 36 - ex * 2),
-    rimThick,
-    speed: Math.min(8, 3.8 + ex * 0.25),
-    pattern: 'figure8',
-    makesNeeded: 5,
-  };
+  return { innerHalf: Math.max(24, 36 - ex * 2), rimThick, speed: Math.min(8, 3.8 + ex * 0.25), pattern: 'figure8', makesNeeded: 5 };
 }
 
-function getLevel1HoopPos(makes: number, ch: number, shot2Y: number, shot3Y: number): { x: number; y: number } {
-  if (makes === 0) return { x: CW / 2, y: DROP_H + 80 };
-  if (makes === 1) return { x: CW - 100, y: shot2Y };
-  return { x: 100, y: shot3Y };
+function setupHoops(level: number, shotIdx: number, ch: number, l1y2: number, l1y3: number): HoopInstance[] {
+  const rimThick = 10;
+  function h(baseX: number, baseY: number, pattern: HoopPattern, speed: number, innerHalf = 50): HoopInstance {
+    return { x: baseX, y: baseY, baseX, baseY, pattern, speed, innerHalf, rimThick, scored: false, lockedOut: false };
+  }
+  if (level === 1) {
+    if (shotIdx === 0) return [h(CW / 2, DROP_H + 80, 'still', 0)];
+    if (shotIdx === 1) return [h(CW - 100, l1y2, 'still', 0)];
+    return [h(100, l1y3, 'still', 0)];
+  }
+  if (level === 5) {
+    if (shotIdx === 0) {
+      // Two stacked static hoops — ball scores +1 each, must clear both
+      return [
+        h(CW / 2, ch - 235, 'still', 0),
+        h(CW / 2, ch - 120, 'still', 0),
+      ];
+    }
+    if (shotIdx === 1) {
+      // Three hoops: top static, middle moves left-right, bottom static
+      return [
+        h(CW / 2, ch - 295, 'still',  0),
+        h(CW / 2, ch - 185, 'linear', 1.5),
+        h(CW / 2, ch - 95,  'still',  0),
+      ];
+    }
+    // Shot 2: two circles going opposite directions — line up at x=CW/2 to shoot
+    return [
+      h(CW / 2, ch - 265, 'circle_cw',  1.5),
+      h(CW / 2, ch - 135, 'circle_ccw', 1.5),
+    ];
+  }
+  const cfg = getLevelCfg(level);
+  return [h(CW / 2, ch - 170, cfg.pattern, cfg.speed, cfg.innerHalf)];
 }
 
 let audioCtx: AudioContext | null = null;
@@ -119,20 +155,6 @@ function pixelCircle(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: n
   }
 }
 
-function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
-  const cx = Math.round(x), cy = Math.round(y);
-  pixelCircle(ctx, cx, cy, r, '#e87722');
-  ctx.fillStyle = '#f5a040';
-  for (let dy = -r + 2; dy <= -r + 6; dy++) {
-    const hw = Math.round(Math.sqrt(r * r - dy * dy)) - 3;
-    if (hw > 0) ctx.fillRect(cx - hw + 2, cy + dy, hw, 1);
-  }
-  ctx.strokeStyle = '#8B3A00'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(cx, cy, r * 0.55, -Math.PI * 0.6, Math.PI * 0.4); ctx.stroke();
-  ctx.beginPath(); ctx.arc(cx, cy, r * 0.55, Math.PI * 0.4, Math.PI * 1.4); ctx.stroke();
-  ctx.beginPath(); ctx.arc(cx - r * 0.3, cy, r * 0.75, -Math.PI * 0.3, Math.PI * 0.3); ctx.stroke();
-}
-
 function drawHoop(ctx: CanvasRenderingContext2D, hoopX: number, hoopY: number, innerHalf: number, rimThick: number) {
   const outerHalf = innerHalf + rimThick;
   const ry = Math.round(hoopY), hx = Math.round(hoopX);
@@ -188,23 +210,24 @@ interface Props {
   arcadeMode?: boolean;
   startLevel?: number;
   onExit?: () => void;
+  ballSkin?: BallSkin;
 }
 
-export default function GameScreen({ onGameOver, personalBest, arcadeMode = false, startLevel = 1, onExit }: Props) {
+export default function GameScreen({ onGameOver, personalBest, arcadeMode = false, startLevel = 1, onExit, ballSkin = 'basketball' }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef({
     phase: 'aiming' as 'aiming' | 'dropping' | 'scored' | 'missed' | 'levelup',
     ball: { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 },
     prevBall: { x: CW / 2, y: DROP_H / 2 + 15 },
     score: 0, level: 1, lives: 3, makesThisLevel: 0, frame: 0,
-    hoopX: CW / 2, hoopY: 0,
+    hoops: [] as HoopInstance[],
     particles: [] as Particle[],
     stars: [] as Star[],
     shakeFrames: 0, shakeIntensity: 0, phaseTimer: 0,
     rimHitThisShot: false,
-    plusOneAlpha: 0, plusOneY: 0, levelUpAlpha: 0, canvasHeight: 0,
+    plusOneAlpha: 0, plusOneY: 0, plusOneX: CW / 2, levelUpAlpha: 0, canvasHeight: 0,
     showDragHint: true,
-    nearMiss: false, hasPassedHoop: false,
+    nearMiss: false,
     missType: 'none' as 'none' | 'close' | 'airball',
     closeToggle: false,
     levelBonus: 0,
@@ -217,16 +240,15 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
     const canvas = canvasRef.current!;
     const h = Math.min(window.innerHeight, 844);
     canvasHeight.current = h;
-    canvas.height = h;
     const s = stateRef.current;
     s.canvasHeight = h;
-    s.hoopY = h - 170;
     s.level = startLevel;
     s.stars = makeStars(h);
     s.level1Shot2Y = h - 100 - Math.random() * 180;
     s.level1Shot3Y = h - 100 - Math.random() * 180;
     s.ball = { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 };
     s.prevBall = { x: CW / 2, y: DROP_H / 2 + 15 };
+    s.hoops = setupHoops(startLevel, 0, h, s.level1Shot2Y, s.level1Shot3Y);
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     canvas.width = CW * dpr;
     canvas.height = h * dpr;
@@ -241,41 +263,49 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
   function update(ctx: CanvasRenderingContext2D) {
     const s = stateRef.current;
     s.frame++;
-    const cfg = getLevelCfg(s.level);
     const ch = s.canvasHeight;
-    const amp = CW / 2 - (cfg.innerHalf + cfg.rimThick) - 22;
-    const spd = cfg.speed * 0.018;
-    if (s.level === 1) {
-      const pos = getLevel1HoopPos(s.makesThisLevel, ch, s.level1Shot2Y, s.level1Shot3Y);
-      s.hoopX = pos.x;
-      s.hoopY = pos.y;
-    } else if (cfg.pattern === 'still') {
-      s.hoopX = CW / 2;
-      s.hoopY = ch - 170;
-    } else if (cfg.pattern === 'linear') {
-      s.hoopX = CW / 2 + Math.sin(s.frame * spd) * amp;
-      s.hoopY = ch - 170;
-    } else if (cfg.pattern === 'rectangle') {
-      const t = (s.frame * spd) % (Math.PI * 2);
-      const side = Math.floor(t / (Math.PI / 2));
-      const frac = (t % (Math.PI / 2)) / (Math.PI / 2);
-      let rx = 0, ry = 0;
-      if (side === 0)      { rx = -1 + 2 * frac; ry =  0.5; }
-      else if (side === 1) { rx =  1;             ry =  0.5 - frac; }
-      else if (side === 2) { rx =  1 - 2 * frac;  ry = -0.5; }
-      else                 { rx = -1;             ry = -0.5 + frac; }
-      s.hoopX = CW / 2 + rx * amp;
-      s.hoopY = ch - 170 + ry * amp;
-    } else if (cfg.pattern === 'circle') {
-      s.hoopX = CW / 2 + Math.cos(s.frame * spd) * amp;
-      s.hoopY = ch - 170 + Math.sin(s.frame * spd) * Math.min(amp, 75);
-    } else {
-      s.hoopX = CW / 2 + Math.sin(s.frame * spd) * amp;
-      s.hoopY = ch - 170 + Math.sin(s.frame * spd * 2) * 18;
+
+    // Update each hoop's position based on its pattern
+    for (const hoop of s.hoops) {
+      const spd = hoop.speed * 0.018;
+      const amp = CW / 2 - (hoop.innerHalf + hoop.rimThick) - 22;
+      if (hoop.pattern === 'still') {
+        // static — stays at base
+      } else if (hoop.pattern === 'linear') {
+        hoop.x = hoop.baseX + Math.sin(s.frame * spd) * amp;
+      } else if (hoop.pattern === 'rectangle') {
+        const t = (s.frame * spd) % (Math.PI * 2);
+        const side = Math.floor(t / (Math.PI / 2));
+        const frac = (t % (Math.PI / 2)) / (Math.PI / 2);
+        let rx = 0, ry = 0;
+        if (side === 0)      { rx = -1 + 2 * frac; ry =  0.5; }
+        else if (side === 1) { rx =  1;             ry =  0.5 - frac; }
+        else if (side === 2) { rx =  1 - 2 * frac;  ry = -0.5; }
+        else                 { rx = -1;             ry = -0.5 + frac; }
+        hoop.x = hoop.baseX + rx * amp;
+        hoop.y = hoop.baseY + ry * amp;
+      } else if (hoop.pattern === 'circle') {
+        hoop.x = hoop.baseX + Math.cos(s.frame * spd) * amp;
+        hoop.y = hoop.baseY + Math.sin(s.frame * spd) * Math.min(amp, 75);
+      } else if (hoop.pattern === 'circle_cw') {
+        // clockwise: starts right, sweeps down. Opposite x to circle_ccw so they diverge.
+        hoop.x = hoop.baseX + Math.cos(s.frame * spd) * amp;
+        hoop.y = hoop.baseY + Math.sin(s.frame * spd) * 28;
+      } else if (hoop.pattern === 'circle_ccw') {
+        // counter-clockwise with inverted x so they're on opposite sides normally
+        // both reach x=baseX at the same time (cos=0), that's the sweet spot to shoot
+        hoop.x = hoop.baseX - Math.cos(s.frame * spd) * amp;
+        hoop.y = hoop.baseY - Math.sin(s.frame * spd) * 28;
+      } else { // figure8
+        hoop.x = hoop.baseX + Math.sin(s.frame * spd) * amp;
+        hoop.y = hoop.baseY + Math.sin(s.frame * spd * 2) * 18;
+      }
     }
+
     if (s.shakeFrames > 0) { s.shakeFrames--; s.shakeIntensity *= 0.88; }
     s.particles = s.particles.filter(p => p.life > 0);
     for (const p of s.particles) { p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life--; }
+
     if (s.phase === 'scored' || s.phase === 'missed' || s.phase === 'levelup') {
       s.phaseTimer--;
       if (s.phase === 'scored') s.plusOneAlpha = Math.max(0, s.phaseTimer / 45);
@@ -292,70 +322,86 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
         s.prevBall = { ...s.ball };
         s.rimHitThisShot = false;
         s.nearMiss = false;
-        s.hasPassedHoop = false;
         s.missType = 'none';
+        s.hoops = setupHoops(s.level, s.makesThisLevel, ch, s.level1Shot2Y, s.level1Shot3Y);
       }
       return;
     }
     if (s.phase !== 'dropping') return;
-    const cfg2 = getLevelCfg(s.level);
-    const RIM_R = cfg2.rimThick / 2;
-    const rimCircles = [
-      { x: s.hoopX - cfg2.innerHalf - cfg2.rimThick / 2, y: s.hoopY },
-      { x: s.hoopX + cfg2.innerHalf + cfg2.rimThick / 2, y: s.hoopY },
-    ];
+
     const SUBSTEPS = 3;
     let resolved = false;
     for (let sub = 0; sub < SUBSTEPS && !resolved; sub++) {
-      const prevX = s.ball.x, prevY = s.ball.y;
       s.ball.vy += GRAVITY / SUBSTEPS;
       s.ball.x += s.ball.vx / SUBSTEPS;
       s.ball.y += s.ball.vy / SUBSTEPS;
-      for (const rim of rimCircles) {
-        const dx = s.ball.x - rim.x, dy = s.ball.y - rim.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const minDist = BALL_R + RIM_R;
-        if (dist < minDist && dist > 0.001) {
-          const nx = dx / dist, ny = dy / dist;
-          s.ball.x = rim.x + nx * (minDist + 0.5);
-          s.ball.y = rim.y + ny * (minDist + 0.5);
-          const dot = s.ball.vx * nx + s.ball.vy * ny;
-          s.ball.vx = (s.ball.vx - 2 * dot * nx) * BOUNCE;
-          s.ball.vy = (s.ball.vy - 2 * dot * ny) * BOUNCE;
-          if (!s.rimHitThisShot) { s.rimHitThisShot = true; playRim(); }
-        }
-      }
-      if (!s.hasPassedHoop && s.ball.vy > 0) {
-        const openLeft = s.hoopX - cfg2.innerHalf + BALL_R * 0.5;
-        const openRight = s.hoopX + cfg2.innerHalf - BALL_R * 0.5;
-        const inZone = s.ball.y >= s.hoopY - BALL_R && s.ball.y <= s.hoopY + BALL_R;
-        if (inZone) {
-          if (s.ball.x > openLeft && s.ball.x < openRight) {
-            s.hasPassedHoop = true;
-            s.score++; s.makesThisLevel++;
-            s.phase = 'scored'; s.phaseTimer = 55;
-            s.plusOneY = s.hoopY - 30; s.plusOneAlpha = 1;
-            emitParticles(s.particles, s.hoopX, s.hoopY - 20, 24);
-            playSwish();
-            if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
-              const bonus = s.level;
-              s.score += bonus;
-              s.levelBonus = bonus;
-              s.plusOneAlpha = 0;
-              s.level++; s.makesThisLevel = 0;
-              s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
-              emitParticles(s.particles, CW / 2, ch / 2, 40);
-              playLevelUp();
-            }
-            resolved = true;
-            break;
-          } else {
-            const distToOpening = s.ball.x < openLeft ? openLeft - s.ball.x : s.ball.x - openRight;
-            if (distToOpening < 22) s.nearMiss = true;
+
+      // Rim collision for all hoops
+      for (const hoop of s.hoops) {
+        const RIM_R = hoop.rimThick / 2;
+        const rimCircles = [
+          { x: hoop.x - hoop.innerHalf - hoop.rimThick / 2, y: hoop.y },
+          { x: hoop.x + hoop.innerHalf + hoop.rimThick / 2, y: hoop.y },
+        ];
+        for (const rim of rimCircles) {
+          const dx = s.ball.x - rim.x, dy = s.ball.y - rim.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const minDist = BALL_R + RIM_R;
+          if (dist < minDist && dist > 0.001) {
+            const nx = dx / dist, ny = dy / dist;
+            s.ball.x = rim.x + nx * (minDist + 0.5);
+            s.ball.y = rim.y + ny * (minDist + 0.5);
+            const dot = s.ball.vx * nx + s.ball.vy * ny;
+            s.ball.vx = (s.ball.vx - 2 * dot * nx) * BOUNCE;
+            s.ball.vy = (s.ball.vy - 2 * dot * ny) * BOUNCE;
+            if (!s.rimHitThisShot) { s.rimHitThisShot = true; playRim(); }
           }
         }
-        if (s.ball.y > s.hoopY + BALL_R * 2) s.hasPassedHoop = true;
       }
+
+      // Scoring check for all hoops
+      for (const hoop of s.hoops) {
+        if (hoop.lockedOut || hoop.scored) continue;
+        if (s.ball.vy > 0) {
+          const openLeft  = hoop.x - hoop.innerHalf + BALL_R * 0.5;
+          const openRight = hoop.x + hoop.innerHalf - BALL_R * 0.5;
+          const inZone = s.ball.y >= hoop.y - BALL_R && s.ball.y <= hoop.y + BALL_R;
+          if (inZone) {
+            if (s.ball.x > openLeft && s.ball.x < openRight) {
+              hoop.scored = true;
+              s.score++;
+              s.plusOneX = hoop.x;
+              s.plusOneY = hoop.y - 30;
+              s.plusOneAlpha = 1;
+              playSwish();
+              // Shot complete when every hoop is scored
+              if (s.hoops.every(h => h.scored)) {
+                s.makesThisLevel++;
+                emitParticles(s.particles, hoop.x, hoop.y - 20, 24);
+                s.phase = 'scored'; s.phaseTimer = 55;
+                if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
+                  const bonus = s.level;
+                  s.score += bonus;
+                  s.levelBonus = bonus;
+                  s.plusOneAlpha = 0;
+                  s.level++; s.makesThisLevel = 0;
+                  s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
+                  emitParticles(s.particles, CW / 2, ch / 2, 40);
+                  playLevelUp();
+                }
+                resolved = true;
+                break;
+              }
+            } else {
+              const dist = s.ball.x < openLeft ? openLeft - s.ball.x : s.ball.x - openRight;
+              if (dist < 22) s.nearMiss = true;
+            }
+          }
+          if (s.ball.y > hoop.y + BALL_R * 2) hoop.lockedOut = true;
+        }
+      }
+      if (resolved) break;
+
       if (s.ball.y > ch + BALL_R * 2) {
         if (!arcadeMode) s.lives = Math.max(0, s.lives - 1);
         s.phase = 'missed'; s.phaseTimer = s.lives <= 0 && !arcadeMode ? 90 : 50;
@@ -367,7 +413,6 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
           s.missType = 'airball';
         }
         s.nearMiss = false;
-        s.hasPassedHoop = false;
         playMiss();
         resolved = true;
         break;
@@ -425,13 +470,13 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
       ctx.fillRect(Math.round(p.x), Math.round(p.y), Math.round(p.sz), Math.round(p.sz));
     }
     ctx.globalAlpha = 1;
-    if (s.ball.y < ch + BALL_R * 3) drawBall(ctx, s.ball.x, s.ball.y, BALL_R);
-    drawHoop(ctx, s.hoopX, s.hoopY, cfg.innerHalf, cfg.rimThick);
+    if (s.ball.y < ch + BALL_R * 3) drawBallSkin(ctx, ballSkin, s.ball.x, s.ball.y, BALL_R);
+    for (const hoop of s.hoops) drawHoop(ctx, hoop.x, hoop.y, hoop.innerHalf, hoop.rimThick);
     if (s.plusOneAlpha > 0.01) {
       ctx.globalAlpha = s.plusOneAlpha;
       ctx.fillStyle = '#ffd700';
       ctx.font = 'bold 22px "Press Start 2P"'; ctx.textAlign = 'center';
-      ctx.fillText('+1', Math.round(s.hoopX), Math.round(s.plusOneY - (1 - s.plusOneAlpha) * 20));
+      ctx.fillText('+1', Math.round(s.plusOneX), Math.round(s.plusOneY - (1 - s.plusOneAlpha) * 20));
       ctx.globalAlpha = 1;
     }
     if (s.phase === 'missed' && s.missType !== 'none') {
@@ -460,8 +505,6 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
       ctx.fillText(`+${s.levelBonus} BONUS PTS`, CW / 2, ch / 2 + 46);
       ctx.globalAlpha = 1;
     }
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(0, 0, CW, 48);
     ctx.font = '11px "Press Start 2P"'; ctx.textAlign = 'left';
     if (arcadeMode) {
       ctx.fillStyle = '#00ffff'; ctx.fillText('EXIT', 12, 32);

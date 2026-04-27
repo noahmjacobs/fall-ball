@@ -157,29 +157,29 @@ export default function GameOverScreen({
             onTouchStart={e => (e.currentTarget.style.transform = 'translate(3px,3px)')}
             onTouchEnd={e => (e.currentTarget.style.transform = '')}
           >
-            ↺ TRY AGAIN
+            TRY AGAIN
           </button>
 
           <button
             onClick={onLeaderboard}
-            style={{ background: 'transparent', color: '#ff69b4', border: '3px solid #ff69b4', boxShadow: '4px 4px 0 #8B0048', fontFamily: "'Press Start 2P', monospace", fontSize: 9, padding: '11px 0', cursor: 'pointer', letterSpacing: 2, width: '100%' }}
+            style={{ background: 'transparent', color: '#ff69b4', border: '3px solid #ff69b4', boxShadow: '4px 4px 0 #8B0048', fontFamily: "'Press Start 2P', monospace", fontSize: 10, padding: '12px 0', cursor: 'pointer', letterSpacing: 2, width: '100%', textAlign: 'center' }}
             onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
             onMouseUp={e => (e.currentTarget.style.transform = '')}
             onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
             onTouchEnd={e => (e.currentTarget.style.transform = '')}
           >
-            🏆 LEADERBOARD
+            LEADERBOARD
           </button>
 
           <button
             onClick={onHome}
-            style={{ background: 'transparent', color: '#aaaaff', border: '3px solid #555588', boxShadow: '4px 4px 0 rgba(0,0,0,0.5)', fontFamily: "'Press Start 2P', monospace", fontSize: 9, padding: '11px 0', cursor: 'pointer', letterSpacing: 2, width: '100%' }}
+            style={{ background: 'transparent', color: '#aaaaff', border: '3px solid #555588', boxShadow: '4px 4px 0 rgba(0,0,0,0.5)', fontFamily: "'Press Start 2P', monospace", fontSize: 10, padding: '12px 0', cursor: 'pointer', letterSpacing: 2, width: '100%', textAlign: 'center' }}
             onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
             onMouseUp={e => (e.currentTarget.style.transform = '')}
             onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
             onTouchEnd={e => (e.currentTarget.style.transform = '')}
           >
-            ⌂ HOME
+            HOME
           </button>
         </div>
       </div>

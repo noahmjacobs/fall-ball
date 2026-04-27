@@ -4,10 +4,11 @@ import GameScreen from './components/GameScreen';
 import GameOverScreen from './components/GameOverScreen';
 import LeaderboardScreen from './components/LeaderboardScreen';
 import LevelSelectScreen from './components/LevelSelectScreen';
+import BallSkinsScreen, { type BallSkin } from './components/BallSkinsScreen';
 import NameEntryModal from './components/NameEntryModal';
 import { submitScore } from './firebase';
 
-type Screen = 'start' | 'game' | 'gameover' | 'leaderboard' | 'levelselect';
+type Screen = 'start' | 'game' | 'gameover' | 'leaderboard' | 'levelselect' | 'skins';
 
 interface GameResult { score: number; level: number; }
 
@@ -19,12 +20,20 @@ export default function App() {
   const [personalBest, setPersonalBest] = useState(0);
   const [arcadeMode, setArcadeMode] = useState(false);
   const [arcadeStartLevel, setArcadeStartLevel] = useState(1);
+  const [ballSkin, setBallSkin] = useState<BallSkin>('basketball');
 
   useEffect(() => {
     const savedName = localStorage.getItem('fallball_name') || '';
     const savedBest = parseInt(localStorage.getItem('fallball_best') || '0', 10);
+    const savedSkin = (localStorage.getItem('fallball_skin') || 'basketball') as BallSkin;
     setPlayerName(savedName);
     setPersonalBest(savedBest);
+    setBallSkin(savedSkin);
+  }, []);
+
+  const handleSkinSelect = useCallback((skin: BallSkin) => {
+    setBallSkin(skin);
+    localStorage.setItem('fallball_skin', skin);
   }, []);
 
   const handlePlay = useCallback(() => {
@@ -70,7 +79,10 @@ export default function App() {
       {showNameEntry && <NameEntryModal onSubmit={handleNameSubmit} />}
 
       {screen === 'start' && (
-        <StartScreen onPlay={handlePlay} onLeaderboard={() => setScreen('leaderboard')} onArcade={() => setScreen('levelselect')} />
+        <StartScreen onPlay={handlePlay} onLeaderboard={() => setScreen('leaderboard')} onArcade={() => setScreen('levelselect')} onSkins={() => setScreen('skins')} ballSkin={ballSkin} />
+      )}
+      {screen === 'skins' && (
+        <BallSkinsScreen currentSkin={ballSkin} onSelect={handleSkinSelect} onBack={() => setScreen('start')} />
       )}
       {screen === 'levelselect' && (
         <LevelSelectScreen onSelect={handleArcadeSelect} onBack={() => setScreen('start')} />
@@ -82,6 +94,7 @@ export default function App() {
           arcadeMode={arcadeMode}
           startLevel={arcadeMode ? arcadeStartLevel : 1}
           onExit={() => setScreen(arcadeMode ? 'levelselect' : 'start')}
+          ballSkin={ballSkin}
         />
       )}
       {screen === 'gameover' && lastResult && (
