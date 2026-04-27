@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 interface Props {
   onPlay: () => void;
   onLeaderboard: () => void;
+  onArcade: () => void;
 }
 
 interface Star {
@@ -14,7 +15,7 @@ interface Star {
   color: string;
 }
 
-export default function StartScreen({ onPlay, onLeaderboard }: Props) {
+export default function StartScreen({ onPlay, onLeaderboard, onArcade }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
   const frameRef = useRef(0);
@@ -105,7 +106,7 @@ export default function StartScreen({ onPlay, onLeaderboard }: Props) {
 
       ctx.fillStyle = '#ff9900';
       ctx.font = "9px 'Press Start 2P', monospace";
-      ctx.fillText('PIXEL HOOPS', W / 2, titleY + 30);
+      ctx.fillText('by Noah Jacobs', W / 2, titleY + 30);
 
       const htpY = H * 0.58;
       ctx.fillStyle = 'rgba(0,0,0,0.45)';
@@ -163,6 +164,29 @@ export default function StartScreen({ onPlay, onLeaderboard }: Props) {
         paddingBottom: 'max(32px, env(safe-area-inset-bottom, 16px))',
         gap: 14,
       }}>
+        <button
+          onClick={onArcade}
+          style={{
+            background: 'transparent',
+            color: '#00ffff',
+            border: '3px solid #00ffff88',
+            boxShadow: '4px 4px 0 #006666',
+            fontFamily: "'Press Start 2P', monospace",
+            fontSize: 11,
+            padding: '12px 32px',
+            cursor: 'pointer',
+            letterSpacing: 2,
+            minWidth: 220,
+            transition: 'transform 0.05s',
+          }}
+          onMouseDown={e => (e.currentTarget.style.transform = 'translate(3px,3px)')}
+          onMouseUp={e => (e.currentTarget.style.transform = '')}
+          onTouchStart={e => (e.currentTarget.style.transform = 'translate(3px,3px)')}
+          onTouchEnd={e => (e.currentTarget.style.transform = '')}
+        >
+          🕹️ ARCADE
+        </button>
+
         <button
           onClick={onPlay}
           style={{

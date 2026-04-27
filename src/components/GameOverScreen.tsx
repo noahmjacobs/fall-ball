@@ -7,6 +7,7 @@ interface Props {
   playerName: string;
   onTryAgain: () => void;
   onLeaderboard: () => void;
+  onHome: () => void;
 }
 
 export default function GameOverScreen({
@@ -16,6 +17,7 @@ export default function GameOverScreen({
   playerName,
   onTryAgain,
   onLeaderboard,
+  onHome,
 }: Props) {
   const isNewBest = score >= personalBest && score > 0;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -119,7 +121,7 @@ export default function GameOverScreen({
         </div>
 
         {playerName && (
-          <div style={{ fontSize: 9, color: '#aaaaff', letterSpacing: 2 }}>{playerName}</div>
+          <div style={{ fontSize: 9, color: '#aaaaff', letterSpacing: 2 }}>by {playerName}</div>
         )}
 
         <div style={{ width: '100%', height: '3px', background: 'repeating-linear-gradient(90deg, #e83232 0px, #e83232 8px, transparent 8px, transparent 12px)' }} />
@@ -167,6 +169,17 @@ export default function GameOverScreen({
             onTouchEnd={e => (e.currentTarget.style.transform = '')}
           >
             🏆 LEADERBOARD
+          </button>
+
+          <button
+            onClick={onHome}
+            style={{ background: 'transparent', color: '#aaaaff', border: '3px solid #555588', boxShadow: '4px 4px 0 rgba(0,0,0,0.5)', fontFamily: "'Press Start 2P', monospace", fontSize: 9, padding: '11px 0', cursor: 'pointer', letterSpacing: 2, width: '100%' }}
+            onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+            onMouseUp={e => (e.currentTarget.style.transform = '')}
+            onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+            onTouchEnd={e => (e.currentTarget.style.transform = '')}
+          >
+            ⌂ HOME
           </button>
         </div>
       </div>

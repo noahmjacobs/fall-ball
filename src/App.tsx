@@ -3,10 +3,11 @@ import StartScreen from './components/StartScreen';
 import GameScreen from './components/GameScreen';
 import GameOverScreen from './components/GameOverScreen';
 import LeaderboardScreen from './components/LeaderboardScreen';
+import LevelSelectScreen from './components/LevelSelectScreen';
 import NameEntryModal from './components/NameEntryModal';
 import { submitScore } from './firebase';
 
-type Screen = 'start' | 'game' | 'gameover' | 'leaderboard';
+type Screen = 'start' | 'game' | 'gameover' | 'leaderboard' | 'levelselect';
 
 interface GameResult { score: number; level: number; }
 
@@ -16,6 +17,8 @@ export default function App() {
   const [showNameEntry, setShowNameEntry] = useState(false);
   const [lastResult, setLastResult] = useState<GameResult | null>(null);
   const [personalBest, setPersonalBest] = useState(0);
+  const [arcadeMode, setArcadeMode] = useState(false);
+  const [arcadeStartLevel, setArcadeStartLevel] = useState(1);
 
   useEffect(() => {
     const savedName = localStorage.getItem('fallball_name') || '';
@@ -28,9 +31,16 @@ export default function App() {
     if (!playerName) {
       setShowNameEntry(true);
     } else {
+      setArcadeMode(false);
       setScreen('game');
     }
   }, [playerName]);
+
+  const handleArcadeSelect = useCallback((level: number) => {
+    setArcadeMode(true);
+    setArcadeStartLevel(level);
+    setScreen('game');
+  }, []);
 
   const handleNameSubmit = useCallback((name: string) => {
     setPlayerName(name);
@@ -60,10 +70,19 @@ export default function App() {
       {showNameEntry && <NameEntryModal onSubmit={handleNameSubmit} />}
 
       {screen === 'start' && (
-        <StartScreen onPlay={handlePlay} onLeaderboard={() => setScreen('leaderboard')} />
+        <StartScreen onPlay={handlePlay} onLeaderboard={() => setScreen('leaderboard')} onArcade={() => setScreen('levelselect')} />
+      )}
+      {screen === 'levelselect' && (
+        <LevelSelectScreen onSelect={handleArcadeSelect} onBack={() => setScreen('start')} />
       )}
       {screen === 'game' && (
-        <GameScreen onGameOver={handleGameOver} personalBest={personalBest} />
+        <GameScreen
+          onGameOver={handleGameOver}
+          personalBest={personalBest}
+          arcadeMode={arcadeMode}
+          startLevel={arcadeMode ? arcadeStartLevel : 1}
+          onExit={() => setScreen(arcadeMode ? 'levelselect' : 'start')}
+        />
       )}
       {screen === 'gameover' && lastResult && (
         <GameOverScreen
@@ -73,6 +92,7 @@ export default function App() {
           playerName={playerName}
           onTryAgain={() => setScreen('game')}
           onLeaderboard={() => setScreen('leaderboard')}
+          onHome={() => setScreen('start')}
         />
       )}
       {screen === 'leaderboard' && (

@@ -23,23 +23,16 @@ export interface LeaderboardEntry {
   timestamp: number;
 }
 
-function getMonthKey(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
 export async function submitScore(name: string, score: number, level: number): Promise<void> {
-  const monthKey = getMonthKey();
-  const leaderboardRef = ref(db, `fallball/leaderboard/${monthKey}`);
+  const leaderboardRef = ref(db, 'fallball/leaderboard/alltime');
   await push(leaderboardRef, { name, score, level, timestamp: Date.now() });
 }
 
 export function subscribeLeaderboard(
   callback: (entries: LeaderboardEntry[]) => void
 ): () => void {
-  const monthKey = getMonthKey();
   const leaderboardRef = query(
-    ref(db, `fallball/leaderboard/${monthKey}`),
+    ref(db, 'fallball/leaderboard/alltime'),
     orderByChild('score'),
     limitToLast(200)
   );
@@ -60,10 +53,4 @@ export function subscribeLeaderboard(
   });
 
   return unsub;
-}
-
-export function getDaysLeftInMonth(): number {
-  const now = new Date();
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return lastDay.getDate() - now.getDate();
 }

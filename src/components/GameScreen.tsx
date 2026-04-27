@@ -11,14 +11,17 @@ interface LevelCfg {
   innerHalf: number;
   rimThick: number;
   speed: number;
-  pattern: 'still' | 'linear' | 'figure8';
+  pattern: 'still' | 'linear' | 'rectangle' | 'circle' | 'figure8';
   makesNeeded: number;
 }
 
 function getLevelCfg(level: number): LevelCfg {
   const rimThick = 10;
-  if (level <= 1)  return { innerHalf: 50, rimThick, speed: 0,    pattern: 'still',   makesNeeded: 3 };
-  if (level <= 5)  return { innerHalf: 50, rimThick, speed: 1.5,  pattern: 'linear',  makesNeeded: 3 };
+  if (level <= 1)  return { innerHalf: 50, rimThick, speed: 0,    pattern: 'still',     makesNeeded: 3 };
+  if (level <= 2)  return { innerHalf: 50, rimThick, speed: 1.5,  pattern: 'linear',    makesNeeded: 3 };
+  if (level <= 3)  return { innerHalf: 50, rimThick, speed: 1.5,  pattern: 'rectangle', makesNeeded: 3 };
+  if (level <= 4)  return { innerHalf: 50, rimThick, speed: 1.8,  pattern: 'circle',    makesNeeded: 3 };
+  if (level <= 5)  return { innerHalf: 50, rimThick, speed: 1.5,  pattern: 'linear',    makesNeeded: 3 };
   if (level <= 10) return { innerHalf: 44, rimThick, speed: 2.0,  pattern: 'linear',  makesNeeded: 3 };
   if (level <= 15) return { innerHalf: 36, rimThick, speed: 2.8,  pattern: 'linear',  makesNeeded: 4 };
   if (level <= 20) return { innerHalf: 36, rimThick, speed: 3.2,  pattern: 'figure8', makesNeeded: 4 };
@@ -133,8 +136,8 @@ function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
 function drawHoop(ctx: CanvasRenderingContext2D, hoopX: number, hoopY: number, innerHalf: number, rimThick: number) {
   const outerHalf = innerHalf + rimThick;
   const ry = Math.round(hoopY), hx = Math.round(hoopX);
-  ctx.fillStyle = '#cccccc33';
-  ctx.fillRect(hx - outerHalf - 2, ry - 40, (outerHalf + 2) * 2, 4);
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(hx - innerHalf, ry); ctx.lineTo(hx + innerHalf, ry); ctx.stroke();
   ctx.fillStyle = '#e83232';
   ctx.fillRect(hx - outerHalf, ry - RIM_H / 2, rimThick, RIM_H);
   ctx.fillStyle = '#ff6666';
@@ -179,9 +182,15 @@ function makeStars(h: number): Star[] {
   return Array.from({ length: 55 }, () => ({ x: Math.random() * CW, y: Math.random() * h, sz: Math.random() < 0.65 ? 1 : 2, phase: Math.random() * Math.PI * 2 }));
 }
 
-interface Props { onGameOver: (score: number, level: number) => void; personalBest: number; }
+interface Props {
+  onGameOver: (score: number, level: number) => void;
+  personalBest: number;
+  arcadeMode?: boolean;
+  startLevel?: number;
+  onExit?: () => void;
+}
 
-export default function GameScreen({ onGameOver, personalBest }: Props) {
+export default function GameScreen({ onGameOver, personalBest, arcadeMode = false, startLevel = 1, onExit }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef({
     phase: 'aiming' as 'aiming' | 'dropping' | 'scored' | 'missed' | 'levelup',
@@ -212,6 +221,7 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
     const s = stateRef.current;
     s.canvasHeight = h;
     s.hoopY = h - 170;
+    s.level = startLevel;
     s.stars = makeStars(h);
     s.level1Shot2Y = h - 100 - Math.random() * 180;
     s.level1Shot3Y = h - 100 - Math.random() * 180;
@@ -245,6 +255,20 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
     } else if (cfg.pattern === 'linear') {
       s.hoopX = CW / 2 + Math.sin(s.frame * spd) * amp;
       s.hoopY = ch - 170;
+    } else if (cfg.pattern === 'rectangle') {
+      const t = (s.frame * spd) % (Math.PI * 2);
+      const side = Math.floor(t / (Math.PI / 2));
+      const frac = (t % (Math.PI / 2)) / (Math.PI / 2);
+      let rx = 0, ry = 0;
+      if (side === 0)      { rx = -1 + 2 * frac; ry =  0.5; }
+      else if (side === 1) { rx =  1;             ry =  0.5 - frac; }
+      else if (side === 2) { rx =  1 - 2 * frac;  ry = -0.5; }
+      else                 { rx = -1;             ry = -0.5 + frac; }
+      s.hoopX = CW / 2 + rx * amp;
+      s.hoopY = ch - 170 + ry * amp;
+    } else if (cfg.pattern === 'circle') {
+      s.hoopX = CW / 2 + Math.cos(s.frame * spd) * amp;
+      s.hoopY = ch - 170 + Math.sin(s.frame * spd) * Math.min(amp, 75);
     } else {
       s.hoopX = CW / 2 + Math.sin(s.frame * spd) * amp;
       s.hoopY = ch - 170 + Math.sin(s.frame * spd * 2) * 18;
@@ -256,8 +280,13 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
       s.phaseTimer--;
       if (s.phase === 'scored') s.plusOneAlpha = Math.max(0, s.phaseTimer / 45);
       if (s.phase === 'levelup') s.levelUpAlpha = Math.max(0, s.phaseTimer / 60);
+      if (s.phase === 'scored' || s.phase === 'levelup') {
+        s.ball.vy += GRAVITY;
+        s.ball.x += s.ball.vx;
+        s.ball.y += s.ball.vy;
+      }
       if (s.phaseTimer <= 0) {
-        if (s.lives <= 0) { onGameOver(s.score, s.level); return; }
+        if (s.lives <= 0 && !arcadeMode) { onGameOver(s.score, s.level); return; }
         s.phase = 'aiming';
         s.ball = { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 };
         s.prevBall = { ...s.ball };
@@ -296,38 +325,40 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
           if (!s.rimHitThisShot) { s.rimHitThisShot = true; playRim(); }
         }
       }
-      if (!s.hasPassedHoop && prevY < s.hoopY && s.ball.y >= s.hoopY) {
-        s.hasPassedHoop = true;
-        const t = (s.hoopY - prevY) / (s.ball.y - prevY);
-        const xAtRim = prevX + t * (s.ball.x - prevX);
+      if (!s.hasPassedHoop && s.ball.vy > 0) {
         const openLeft = s.hoopX - cfg2.innerHalf + BALL_R * 0.5;
         const openRight = s.hoopX + cfg2.innerHalf - BALL_R * 0.5;
-        if (xAtRim > openLeft && xAtRim < openRight) {
-          s.score++; s.makesThisLevel++;
-          s.phase = 'scored'; s.phaseTimer = 55;
-          s.plusOneY = s.hoopY - 30; s.plusOneAlpha = 1;
-          emitParticles(s.particles, s.hoopX, s.hoopY - 20, 24);
-          playSwish();
-          if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
-            const bonus = s.level;
-            s.score += bonus;
-            s.levelBonus = bonus;
-            s.plusOneAlpha = 0;
-            s.level++; s.makesThisLevel = 0;
-            s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
-            emitParticles(s.particles, CW / 2, ch / 2, 40);
-            playLevelUp();
+        const inZone = s.ball.y >= s.hoopY - BALL_R && s.ball.y <= s.hoopY + BALL_R;
+        if (inZone) {
+          if (s.ball.x > openLeft && s.ball.x < openRight) {
+            s.hasPassedHoop = true;
+            s.score++; s.makesThisLevel++;
+            s.phase = 'scored'; s.phaseTimer = 55;
+            s.plusOneY = s.hoopY - 30; s.plusOneAlpha = 1;
+            emitParticles(s.particles, s.hoopX, s.hoopY - 20, 24);
+            playSwish();
+            if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
+              const bonus = s.level;
+              s.score += bonus;
+              s.levelBonus = bonus;
+              s.plusOneAlpha = 0;
+              s.level++; s.makesThisLevel = 0;
+              s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
+              emitParticles(s.particles, CW / 2, ch / 2, 40);
+              playLevelUp();
+            }
+            resolved = true;
+            break;
+          } else {
+            const distToOpening = s.ball.x < openLeft ? openLeft - s.ball.x : s.ball.x - openRight;
+            if (distToOpening < 22) s.nearMiss = true;
           }
-          resolved = true;
-          break;
-        } else {
-          const distToOpening = xAtRim < openLeft ? openLeft - xAtRim : xAtRim - openRight;
-          s.nearMiss = distToOpening < 22;
         }
+        if (s.ball.y > s.hoopY + BALL_R * 2) s.hasPassedHoop = true;
       }
       if (s.ball.y > ch + BALL_R * 2) {
-        s.lives = Math.max(0, s.lives - 1);
-        s.phase = 'missed'; s.phaseTimer = s.lives <= 0 ? 90 : 50;
+        if (!arcadeMode) s.lives = Math.max(0, s.lives - 1);
+        s.phase = 'missed'; s.phaseTimer = s.lives <= 0 && !arcadeMode ? 90 : 50;
         s.shakeFrames = 16; s.shakeIntensity = 9;
         if (s.nearMiss || s.rimHitThisShot) {
           s.missType = 'close';
@@ -432,15 +463,24 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, CW, 48);
     ctx.font = '11px "Press Start 2P"'; ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffd700'; ctx.fillText(`${s.score}`, 12, 32);
-    ctx.fillStyle = '#888'; ctx.font = '7px "Press Start 2P"'; ctx.fillText('SCORE', 12, 14);
+    if (arcadeMode) {
+      ctx.fillStyle = '#00ffff'; ctx.fillText('EXIT', 12, 32);
+      ctx.fillStyle = '#888'; ctx.font = '7px "Press Start 2P"'; ctx.fillText('TAP ▼', 12, 14);
+    } else {
+      ctx.fillStyle = '#ffd700'; ctx.fillText(`${s.score}`, 12, 32);
+      ctx.fillStyle = '#888'; ctx.font = '7px "Press Start 2P"'; ctx.fillText('SCORE', 12, 14);
+    }
     ctx.fillStyle = '#00ffff'; ctx.font = '11px "Press Start 2P"'; ctx.textAlign = 'center';
     ctx.fillText(`LVL ${s.level}`, CW / 2, 32);
     ctx.fillStyle = '#888'; ctx.font = '7px "Press Start 2P"'; ctx.fillText('LEVEL', CW / 2, 14);
     ctx.textAlign = 'right'; ctx.font = '12px "Press Start 2P"';
-    let heartsStr = '';
-    for (let i = 0; i < 3; i++) heartsStr += i < s.lives ? '♥' : '♡';
-    ctx.fillStyle = '#ff4444'; ctx.fillText(heartsStr, CW - 10, 32);
+    if (arcadeMode) {
+      ctx.fillStyle = '#00ffff'; ctx.fillText('∞', CW - 10, 32);
+    } else {
+      let heartsStr = '';
+      for (let i = 0; i < 3; i++) heartsStr += i < s.lives ? '♥' : '♡';
+      ctx.fillStyle = '#ff4444'; ctx.fillText(heartsStr, CW - 10, 32);
+    }
     const barH = 10, barY = ch - barH - 4;
     const prog = Math.min(1, s.makesThisLevel / cfg.makesNeeded);
     ctx.fillStyle = '#111128'; ctx.fillRect(0, barY, CW, barH);
@@ -476,6 +516,11 @@ export default function GameScreen({ onGameOver, personalBest }: Props) {
     try { getAudio(); } catch (_) {}
     const s = stateRef.current;
     s.showDragHint = false;
+    if (arcadeMode && onExit) {
+      const y = getY(e);
+      const x = getX(e);
+      if (y < 48 && x < 80) { onExit(); return; }
+    }
     if (s.phase !== 'aiming') return;
     const y = getY(e);
     if (y > DROP_H + 10) return;
