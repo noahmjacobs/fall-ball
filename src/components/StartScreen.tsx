@@ -111,7 +111,7 @@ export default function StartScreen({ onPlay, onLeaderboard, onArcade, onSkins, 
       ctx.fillText('HOW TO PLAY', W / 2, htpY - 8);
       ctx.fillStyle = '#cccccc';
       ctx.font = "8px 'Press Start 2P', monospace";
-      ctx.fillText('DRAG TOP → RELEASE → SCORE!', W / 2, htpY + 10);
+      ctx.fillText('DRAG → RELEASE → SCORE!', W / 2, htpY + 10);
 
       rafRef.current = requestAnimationFrame(render);
     }
