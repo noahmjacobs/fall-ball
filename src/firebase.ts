@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import {
-  getDatabase, ref, push, query,
+  getDatabase, ref, set, get, query,
   orderByChild, limitToLast, onValue,
   type DataSnapshot
 } from 'firebase/database';
@@ -24,8 +24,12 @@ export interface LeaderboardEntry {
 }
 
 export async function submitScore(name: string, score: number, level: number): Promise<void> {
-  const leaderboardRef = ref(db, 'fallball/leaderboard/alltime');
-  await push(leaderboardRef, { name, score, level, timestamp: Date.now() });
+  const key = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  const entryRef = ref(db, `fallball/leaderboard/alltime/${key}`);
+  const snapshot = await get(entryRef);
+  if (!snapshot.exists() || snapshot.val().score < score) {
+    await set(entryRef, { name, score, level, timestamp: Date.now() });
+  }
 }
 
 export function subscribeLeaderboard(
@@ -34,7 +38,7 @@ export function subscribeLeaderboard(
   const leaderboardRef = query(
     ref(db, 'fallball/leaderboard/alltime'),
     orderByChild('score'),
-    limitToLast(200)
+    limitToLast(1000)
   );
 
   const unsub = onValue(leaderboardRef, (snapshot: DataSnapshot) => {

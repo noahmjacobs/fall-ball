@@ -318,7 +318,7 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
       }
       if (s.phaseTimer <= 0) {
         const wasLevelUp = s.phase === 'levelup';
-        if (s.lives <= 0 && !arcadeMode) { onGameOver(s.score, s.level); return; }
+        if (s.lives <= 0 && !arcadeMode) { s.phase = 'aiming'; onGameOver(s.score, s.level); return; }
         s.phase = 'aiming';
         s.ball = { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 };
         s.prevBall = { ...s.ball };
