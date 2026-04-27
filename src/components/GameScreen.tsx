@@ -12,6 +12,7 @@ type HoopPattern = 'still' | 'linear' | 'linear_v' | 'rectangle' | 'circle' | 'c
 
 interface HoopInstance {
   x: number; y: number;
+  prevX: number; prevY: number;
   baseX: number; baseY: number;
   pattern: HoopPattern;
   speed: number;
@@ -45,7 +46,7 @@ function getLevelCfg(level: number): LevelCfg {
 function setupHoops(level: number, shotIdx: number, ch: number, l1y2: number, l1y3: number): HoopInstance[] {
   const rimThick = 10;
   function h(baseX: number, baseY: number, pattern: HoopPattern, speed: number, innerHalf = 50, ampX?: number, ampY?: number, frameOffset?: number): HoopInstance {
-    return { x: baseX, y: baseY, baseX, baseY, pattern, speed, innerHalf, rimThick, scored: false, lockedOut: false, ampX, ampY, frameOffset };
+    return { x: baseX, y: baseY, prevX: baseX, prevY: baseY, baseX, baseY, pattern, speed, innerHalf, rimThick, scored: false, lockedOut: false, ampX, ampY, frameOffset };
   }
   if (level === 1) {
     if (shotIdx === 0) return [h(CW / 2, DROP_H + 80, 'still', 0)];
@@ -385,11 +386,13 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
           for (const hoop of s.hoops) { hoop.scored = false; hoop.lockedOut = false; }
         }
       } else {
+        for (const hoop of s.hoops) { hoop.prevX = hoop.x; hoop.prevY = hoop.y; }
         positionHoops(s.hoops, s.frame);
       }
       return;
     }
 
+    for (const hoop of s.hoops) { hoop.prevX = hoop.x; hoop.prevY = hoop.y; }
     positionHoops(s.hoops, s.frame);
     if (s.phase !== 'dropping') return;
 
@@ -403,15 +406,30 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
       s.ball.y += s.ball.vy / SUBSTEPS;
 
       // Scoring check FIRST — before any collision moves the ball
-      // CCD: interpolate x at the moment ball crosses hoop's y-plane
+      // sub===0 uses relative motion (ball vs hoop both moved since last frame)
+      // sub>0 uses standard CCD (hoop.y is constant within a frame)
       for (const hoop of s.hoops) {
         if (hoop.scored) continue;
-        const crossed = (subPrevBallY < hoop.y && s.ball.y >= hoop.y) || (subPrevBallY > hoop.y && s.ball.y <= hoop.y);
-        if (crossed && Math.abs(s.ball.y - subPrevBallY) > 0.001) {
-          const t = (hoop.y - subPrevBallY) / (s.ball.y - subPrevBallY);
+        let crossed = false, t = 0, hoopXAtT = hoop.x;
+        if (sub === 0) {
+          const relPrev = subPrevBallY - hoop.prevY;
+          const relCurr = s.ball.y - hoop.y;
+          if ((relPrev < 0 && relCurr >= 0) || (relPrev > 0 && relCurr <= 0)) {
+            crossed = true;
+            if (Math.abs(relCurr - relPrev) > 0.001) t = -relPrev / (relCurr - relPrev);
+            hoopXAtT = hoop.prevX + t * (hoop.x - hoop.prevX);
+          }
+        } else {
+          if ((subPrevBallY < hoop.y && s.ball.y >= hoop.y) || (subPrevBallY > hoop.y && s.ball.y <= hoop.y)) {
+            crossed = true;
+            if (Math.abs(s.ball.y - subPrevBallY) > 0.001) t = (hoop.y - subPrevBallY) / (s.ball.y - subPrevBallY);
+            hoopXAtT = hoop.x;
+          }
+        }
+        if (crossed) {
           const xAtCross = subPrevBallX + t * (s.ball.x - subPrevBallX);
-          const openLeft  = hoop.x - hoop.innerHalf + BALL_R * 0.5;
-          const openRight = hoop.x + hoop.innerHalf - BALL_R * 0.5;
+          const openLeft  = hoopXAtT - hoop.innerHalf + BALL_R * 0.5;
+          const openRight = hoopXAtT + hoop.innerHalf - BALL_R * 0.5;
           if (xAtCross > openLeft && xAtCross < openRight) {
             hoop.scored = true;
             s.score++;
