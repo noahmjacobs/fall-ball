@@ -248,7 +248,9 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
     s.level1Shot3Y = h - 100 - Math.random() * 180;
     s.ball = { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 };
     s.prevBall = { x: CW / 2, y: DROP_H / 2 + 15 };
+    s.frame = 20; // sin(0)=0 puts moving hoops at center; start mid-motion instead
     s.hoops = setupHoops(startLevel, 0, h, s.level1Shot2Y, s.level1Shot3Y);
+    positionHoops(s.hoops, s.frame);
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     canvas.width = CW * dpr;
     canvas.height = h * dpr;
@@ -260,21 +262,16 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
-  function update(ctx: CanvasRenderingContext2D) {
-    const s = stateRef.current;
-    s.frame++;
-    const ch = s.canvasHeight;
-
-    // Update each hoop's position based on its pattern
-    for (const hoop of s.hoops) {
+  function positionHoops(hoops: HoopInstance[], frame: number) {
+    for (const hoop of hoops) {
       const spd = hoop.speed * 0.018;
       const amp = CW / 2 - (hoop.innerHalf + hoop.rimThick) - 22;
       if (hoop.pattern === 'still') {
-        // static — stays at base
+        // static
       } else if (hoop.pattern === 'linear') {
-        hoop.x = hoop.baseX + Math.sin(s.frame * spd) * amp;
+        hoop.x = hoop.baseX + Math.sin(frame * spd) * amp;
       } else if (hoop.pattern === 'rectangle') {
-        const t = (s.frame * spd) % (Math.PI * 2);
+        const t = (frame * spd) % (Math.PI * 2);
         const side = Math.floor(t / (Math.PI / 2));
         const frac = (t % (Math.PI / 2)) / (Math.PI / 2);
         let rx = 0, ry = 0;
@@ -285,26 +282,30 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
         hoop.x = hoop.baseX + rx * amp;
         hoop.y = hoop.baseY + ry * amp;
       } else if (hoop.pattern === 'circle') {
-        hoop.x = hoop.baseX + Math.cos(s.frame * spd) * amp;
-        hoop.y = hoop.baseY + Math.sin(s.frame * spd) * Math.min(amp, 75);
+        hoop.x = hoop.baseX + Math.cos(frame * spd) * amp;
+        hoop.y = hoop.baseY + Math.sin(frame * spd) * Math.min(amp, 75);
       } else if (hoop.pattern === 'circle_cw') {
-        // clockwise: starts right, sweeps down. Opposite x to circle_ccw so they diverge.
-        hoop.x = hoop.baseX + Math.cos(s.frame * spd) * amp;
-        hoop.y = hoop.baseY + Math.sin(s.frame * spd) * 28;
+        hoop.x = hoop.baseX + Math.cos(frame * spd) * amp;
+        hoop.y = hoop.baseY + Math.sin(frame * spd) * 28;
       } else if (hoop.pattern === 'circle_ccw') {
-        // counter-clockwise with inverted x so they're on opposite sides normally
-        // both reach x=baseX at the same time (cos=0), that's the sweet spot to shoot
-        hoop.x = hoop.baseX - Math.cos(s.frame * spd) * amp;
-        hoop.y = hoop.baseY - Math.sin(s.frame * spd) * 28;
+        hoop.x = hoop.baseX - Math.cos(frame * spd) * amp;
+        hoop.y = hoop.baseY - Math.sin(frame * spd) * 28;
       } else { // figure8
-        hoop.x = hoop.baseX + Math.sin(s.frame * spd) * amp;
-        hoop.y = hoop.baseY + Math.sin(s.frame * spd * 2) * 18;
+        hoop.x = hoop.baseX + Math.sin(frame * spd) * amp;
+        hoop.y = hoop.baseY + Math.sin(frame * spd * 2) * 18;
       }
     }
+  }
+
+  function update(ctx: CanvasRenderingContext2D) {
+    const s = stateRef.current;
+    s.frame++;
+    const ch = s.canvasHeight;
 
     if (s.shakeFrames > 0) { s.shakeFrames--; s.shakeIntensity *= 0.88; }
     s.particles = s.particles.filter(p => p.life > 0);
     for (const p of s.particles) { p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life--; }
+    s.plusOneAlpha = Math.max(0, s.plusOneAlpha - 0.04);
 
     if (s.phase === 'scored' || s.phase === 'missed' || s.phase === 'levelup') {
       s.phaseTimer--;
@@ -316,6 +317,7 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
         s.ball.y += s.ball.vy;
       }
       if (s.phaseTimer <= 0) {
+        const wasLevelUp = s.phase === 'levelup';
         if (s.lives <= 0 && !arcadeMode) { onGameOver(s.score, s.level); return; }
         s.phase = 'aiming';
         s.ball = { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 };
@@ -323,10 +325,24 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
         s.rimHitThisShot = false;
         s.nearMiss = false;
         s.missType = 'none';
-        s.hoops = setupHoops(s.level, s.makesThisLevel, ch, s.level1Shot2Y, s.level1Shot3Y);
+        s.plusOneAlpha = 0;
+        // Only rebuild hoops when the layout actually changes:
+        // - level just changed (wasLevelUp)
+        // - level 1 or 5: each shot has a different hoop configuration
+        // Otherwise just reset flags so the hoop keeps moving with no glitch
+        if (wasLevelUp || s.level === 1 || s.level === 5) {
+          s.hoops = setupHoops(s.level, s.makesThisLevel, ch, s.level1Shot2Y, s.level1Shot3Y);
+          positionHoops(s.hoops, s.frame);
+        } else {
+          for (const hoop of s.hoops) { hoop.scored = false; hoop.lockedOut = false; }
+        }
+      } else {
+        positionHoops(s.hoops, s.frame);
       }
       return;
     }
+
+    positionHoops(s.hoops, s.frame);
     if (s.phase !== 'dropping') return;
 
     const SUBSTEPS = 3;
