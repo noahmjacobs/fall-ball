@@ -480,6 +480,7 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
             const dot = s.ball.vx * nx + s.ball.vy * ny;
             s.ball.vx = (s.ball.vx - 2 * dot * nx) * BOUNCE;
             s.ball.vy = (s.ball.vy - 2 * dot * ny) * BOUNCE;
+            if (Math.abs(s.ball.vx) < 0.5) s.ball.vx = (Math.random() < 0.5 ? -1.0 : 1.0);
             if (!s.rimHitThisShot) { s.rimHitThisShot = true; playRim(); }
           }
         }
