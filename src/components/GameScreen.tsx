@@ -255,6 +255,7 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef({
     phase: 'aiming' as 'aiming' | 'dropping' | 'scored' | 'missed' | 'levelup',
+    gameOverFired: false,
     ball: { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 },
     prevBall: { x: CW / 2, y: DROP_H / 2 + 15 },
     score: 0, level: 1, lives: 3, makesThisLevel: 0, frame: 0,
@@ -366,7 +367,7 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
       }
       if (s.phaseTimer <= 0) {
         const wasLevelUp = s.phase === 'levelup';
-        if (s.lives <= 0 && !arcadeMode) { s.phase = 'aiming'; onGameOver(s.score, s.level); return; }
+        if (s.lives <= 0 && !arcadeMode) { if (!s.gameOverFired) { s.gameOverFired = true; onGameOver(s.score, s.level); } return; }
         s.phase = 'aiming';
         s.ball = { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 };
         s.prevBall = { ...s.ball };
