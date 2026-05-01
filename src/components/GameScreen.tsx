@@ -363,7 +363,8 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
       if (hoop.pattern === 'still') {
         // static
       } else if (hoop.pattern === 'linear') {
-        hoop.x = hoop.baseX + Math.sin(f * spd) * amp;
+        const ax = hoop.ampX ?? amp;
+        hoop.x = hoop.baseX + Math.sin(f * spd) * ax;
       } else if (hoop.pattern === 'linear_v') {
         const ay = hoop.ampY ?? amp;
         hoop.y = hoop.baseY + Math.sin(f * spd) * ay;
