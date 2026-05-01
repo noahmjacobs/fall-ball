@@ -15,7 +15,9 @@ export default function LevelSelectScreen({ onSelect, onBack, totalLevels = 9 }:
       fontFamily: "'Press Start 2P', monospace",
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       overflowY: 'auto',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
       paddingBottom: 'max(24px, env(safe-area-inset-bottom, 16px))',
+      boxSizing: 'border-box',
     }}>
       <div style={{ padding: '28px 16px 16px', textAlign: 'center' }}>
         <div style={{ fontSize: 11, color: '#00ffff', letterSpacing: 2, marginBottom: 6, textShadow: '2px 2px 0 #006666' }}>

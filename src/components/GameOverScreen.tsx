@@ -91,6 +91,8 @@ export default function GameOverScreen({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        boxSizing: 'border-box',
       }}
     >
       <canvas

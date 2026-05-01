@@ -80,7 +80,7 @@ export default function LeaderboardScreen({ playerName, onBack }: Props) {
     playerName && name.toUpperCase() === playerName.toUpperCase();
 
   return (
-    <div style={{ width: '100%', height: '100dvh', position: 'relative', overflow: 'hidden', background: '#1a1035', fontFamily: "'Press Start 2P', monospace", display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ width: '100%', height: '100dvh', position: 'relative', overflow: 'hidden', background: '#1a1035', fontFamily: "'Press Start 2P', monospace", display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 'env(safe-area-inset-top, 0px)', boxSizing: 'border-box' }}>
       <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', imageRendering: 'pixelated', pointerEvents: 'none' }} />
 
       <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 390, height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'], paddingBottom: 'max(80px, calc(env(safe-area-inset-bottom, 0px) + 80px))' }}>

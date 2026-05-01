@@ -398,6 +398,8 @@ export default function LevelEditorScreen({ onBack, onTest, initialData, mode = 
       overflow: 'hidden',
       fontFamily: "'Press Start 2P', monospace",
       position: 'relative',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      boxSizing: 'border-box',
     }}>
       {/* Top bar */}
       <div style={{

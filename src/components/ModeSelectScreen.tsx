@@ -94,6 +94,8 @@ export default function ModeSelectScreen({ onCampaign, onArcade, onLevelCreator,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      boxSizing: 'border-box',
     }}>
       <canvas
         ref={canvasRef}

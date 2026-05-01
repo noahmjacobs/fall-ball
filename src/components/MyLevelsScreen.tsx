@@ -78,6 +78,8 @@ export default function MyLevelsScreen({ playerName, onEdit, onBack }: Props) {
       overflow: 'hidden', background: '#1a1035',
       fontFamily: "'Press Start 2P', monospace",
       display: 'flex', flexDirection: 'column',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      boxSizing: 'border-box',
     }}>
       <canvas ref={canvasRef} style={{
         position: 'absolute', top: 0, left: '50%',

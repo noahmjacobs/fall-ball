@@ -378,6 +378,8 @@ export default function BallSkinsScreen({ currentSkin, onSelect, onBack }: Props
       overflow: 'hidden', background: '#1a1035',
       fontFamily: "'Press Start 2P', monospace",
       display: 'flex', flexDirection: 'column', alignItems: 'center',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      boxSizing: 'border-box',
     }}>
       <canvas ref={bgCanvasRef} style={{
         position: 'absolute', top: 0, left: '50%',

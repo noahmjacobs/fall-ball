@@ -208,6 +208,8 @@ export default function CommunityLevelsScreen({ playerName, onPlay, onBack }: Pr
       overflow: 'hidden', background: '#1a1035',
       fontFamily: "'Press Start 2P', monospace",
       display: 'flex', flexDirection: 'column',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      boxSizing: 'border-box',
     }}>
       <canvas ref={canvasRef} style={{
         position: 'absolute', top: 0, left: '50%',
