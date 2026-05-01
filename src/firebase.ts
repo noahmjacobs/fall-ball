@@ -53,7 +53,7 @@ export function subscribeLeaderboard(
       }
     });
     const sorted = Array.from(best.values()).sort((a, b) => b.score - a.score);
-    callback(sorted.slice(0, 20));
+    callback(sorted);
   });
 
   return unsub;
