@@ -32,7 +32,8 @@ Each major system has its own doc. **Read the relevant doc before touching that 
 | Game engine, physics, scoring | `docs/GAME_ENGINE.md` | `src/components/GameScreen.tsx` |
 | JSON level format, loading, deployment | `docs/LEVEL_SYSTEM.md` | `src/levelLoader.ts`, `src/types/level.ts`, `public/levels/campaign/` |
 | Level Editor, PIN gate, test mode | `docs/LEVEL_EDITOR.md` | `src/components/LevelEditorScreen.tsx`, `LevelCreatorScreen.tsx`, `PinEntryModal.tsx` |
-| Firebase leaderboard | `docs/FIREBASE.md` | `src/firebase.ts` |
+| Firebase leaderboard + user levels API | `docs/FIREBASE.md` | `src/firebase.ts` |
+| Community levels, My Levels, user editor | `docs/COMMUNITY_LEVELS.md` | `src/components/CommunityLevelsScreen.tsx`, `MyLevelsScreen.tsx` |
 | All screens and navigation | `docs/SCREENS.md` | `src/App.tsx` |
 | Ball skins, adding new skins | `docs/BALL_SKINS.md` | `src/components/BallSkinsScreen.tsx` |
 

@@ -1,4 +1,4 @@
-# Firebase — Leaderboard
+# Firebase — Leaderboard & User Levels
 
 Firebase Realtime Database stores all-time high scores. There is no authentication — players identify themselves by name only.
 
@@ -97,6 +97,20 @@ LeaderboardScreen mounts
         └─ Firebase pushes live updates
               └─ callback updates entries state → re-renders list
 ```
+
+## User Levels
+
+See `docs/COMMUNITY_LEVELS.md` for the full user levels API and database structure.
+
+**DB paths:**
+- `fallball/user_levels/[creatorKey]/[levelId]` — per-player storage
+- `fallball/community_feed/[levelId]` — denormalized for fast community queries
+
+**Key functions:**
+- `saveUserLevel(playerName, data, existingId?)` → returns level ID
+- `getUserLevels(playerName)` → `UserLevel[]` newest first
+- `deleteUserLevel(playerName, levelId)` → removes from both paths
+- `subscribeCommunityLevels(callback)` → live feed, newest first, up to 200
 
 ## Config
 

@@ -249,7 +249,7 @@ function setupObstacles(level: number, ch: number): Obstacle[] {
 }
 
 function levelDataToHoops(ld: LevelData): HoopInstance[] {
-  return ld.hoops.map(th => ({
+  return (ld.hoops ?? []).map(th => ({
     x: th.baseX, y: th.baseY, prevX: th.baseX, prevY: th.baseY,
     baseX: th.baseX, baseY: th.baseY,
     pattern: th.pattern as HoopPattern,
@@ -262,7 +262,7 @@ function levelDataToHoops(ld: LevelData): HoopInstance[] {
 }
 
 function levelDataToObstacles(ld: LevelData): Obstacle[] {
-  return ld.obstacles.map(o => ({
+  return (ld.obstacles ?? []).map(o => ({
     x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2,
     color: o.type === 'trampoline' ? '#ffd700' : '#b0b0b0',
     thick: o.thick, restitution: o.restitution, friction: o.friction,
@@ -520,24 +520,29 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
               emitParticles(s.particles, hoop.x, hoop.y - 20, 24);
               s.phase = 'scored'; s.phaseTimer = 55;
               if (s.makesThisLevel >= s.currentMakesNeeded) {
-                const bonus = s.level;
-                s.score += bonus;
-                s.levelBonus = bonus;
-                s.plusOneAlpha = 0;
-                s.level++; s.makesThisLevel = 0;
-                s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
-                emitParticles(s.particles, CW / 2, ch / 2, 40);
-                playLevelUp();
-                // Campaign JSON levels: check if next level exists or trigger win
-                if (!arcadeMode && !testLevel && s.level >= 10) {
-                  const nextIdx = s.level - 10;
-                  if (nextIdx >= campaignLevels.length) {
-                    s.wonPending = true;
-                  } else {
-                    s.currentMakesNeeded = campaignLevels[nextIdx].makesNeeded;
+                if (testLevel) {
+                  // Community/test level: complete immediately, no level-up animation
+                  s.wonPending = true;
+                  // phase stays 'scored', phaseTimer = 55 — onGameWon fires after brief pause
+                } else {
+                  const bonus = s.level;
+                  s.score += bonus;
+                  s.levelBonus = bonus;
+                  s.plusOneAlpha = 0;
+                  s.level++; s.makesThisLevel = 0;
+                  s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
+                  emitParticles(s.particles, CW / 2, ch / 2, 40);
+                  playLevelUp();
+                  if (!arcadeMode && s.level >= 10) {
+                    const nextIdx = s.level - 10;
+                    if (nextIdx >= campaignLevels.length) {
+                      s.wonPending = true;
+                    } else {
+                      s.currentMakesNeeded = campaignLevels[nextIdx].makesNeeded;
+                    }
+                  } else if (!arcadeMode && s.level < 10) {
+                    s.currentMakesNeeded = getLevelCfg(s.level).makesNeeded;
                   }
-                } else if (!arcadeMode && !testLevel && s.level < 10) {
-                  s.currentMakesNeeded = getLevelCfg(s.level).makesNeeded;
                 }
               }
               resolved = true;
@@ -768,16 +773,24 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
       ctx.globalAlpha = 1;
     }
     ctx.font = '11px "Press Start 2P"'; ctx.textAlign = 'left';
-    if (arcadeMode) {
+    if (arcadeMode || testLevel) {
       ctx.fillStyle = '#00ffff'; ctx.fillText('EXIT', 12, 32);
       ctx.fillStyle = '#888'; ctx.font = '7px "Press Start 2P"'; ctx.fillText('TAP ▼', 12, 14);
     } else {
       ctx.fillStyle = '#ffd700'; ctx.fillText(`${s.score}`, 12, 32);
       ctx.fillStyle = '#888'; ctx.font = '7px "Press Start 2P"'; ctx.fillText('SCORE', 12, 14);
     }
-    ctx.fillStyle = '#00ffff'; ctx.font = '11px "Press Start 2P"'; ctx.textAlign = 'center';
-    ctx.fillText(`LVL ${s.level}`, CW / 2, 32);
-    ctx.fillStyle = '#888'; ctx.font = '7px "Press Start 2P"'; ctx.fillText('LEVEL', CW / 2, 14);
+    // Center HUD: show level name for community/test levels, level number otherwise
+    ctx.textAlign = 'center';
+    if (testLevel) {
+      const raw = testLevel.name.toUpperCase();
+      const display = raw.length > 20 ? raw.slice(0, 19) + '…' : raw;
+      ctx.fillStyle = '#00ffff'; ctx.font = '9px "Press Start 2P"'; ctx.fillText(display, CW / 2, 32);
+      ctx.fillStyle = '#888'; ctx.font = '7px "Press Start 2P"'; ctx.fillText('COMMUNITY', CW / 2, 14);
+    } else {
+      ctx.fillStyle = '#00ffff'; ctx.font = '11px "Press Start 2P"'; ctx.fillText(`LVL ${s.level}`, CW / 2, 32);
+      ctx.fillStyle = '#888'; ctx.font = '7px "Press Start 2P"'; ctx.fillText('LEVEL', CW / 2, 14);
+    }
     ctx.textAlign = 'right'; ctx.font = '12px "Press Start 2P"';
     if (arcadeMode) {
       ctx.fillStyle = '#00ffff'; ctx.fillText('∞', CW - 10, 32);
@@ -786,17 +799,24 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
       for (let i = 0; i < 3; i++) heartsStr += i < s.lives ? '♥' : '♡';
       ctx.fillStyle = '#ff4444'; ctx.fillText(heartsStr, CW - 10, 32);
     }
+    // Progress bar — use currentMakesNeeded for community levels so it reflects the actual target
+    const makesTarget = testLevel ? s.currentMakesNeeded : cfg.makesNeeded;
     const barH = 10, barY = ch - barH - 4;
-    const prog = Math.min(1, s.makesThisLevel / cfg.makesNeeded);
+    const prog = Math.min(1, s.makesThisLevel / makesTarget);
     ctx.fillStyle = '#111128'; ctx.fillRect(0, barY, CW, barH);
     ctx.fillStyle = '#00ffff'; ctx.fillRect(0, barY, Math.round(CW * prog), barH);
     ctx.fillStyle = '#ffffff22';
-    for (let i = 1; i < cfg.makesNeeded; i++) {
-      const bx = Math.round(CW * i / cfg.makesNeeded);
+    for (let i = 1; i < makesTarget; i++) {
+      const bx = Math.round(CW * i / makesTarget);
       ctx.fillRect(bx - 1, barY, 2, barH);
     }
     ctx.font = '8px "Press Start 2P"'; ctx.fillStyle = '#ffffff88'; ctx.textAlign = 'center';
-    ctx.fillText(`${s.makesThisLevel}/${cfg.makesNeeded} TO NEXT LEVEL`, CW / 2, barY - 5);
+    ctx.fillText(
+      testLevel
+        ? `${s.makesThisLevel}/${makesTarget} MAKES`
+        : `${s.makesThisLevel}/${makesTarget} TO NEXT LEVEL`,
+      CW / 2, barY - 5
+    );
     ctx.restore();
   }
 
@@ -821,7 +841,7 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
     try { getAudio(); } catch (_) {}
     const s = stateRef.current;
     s.showDragHint = false;
-    if (arcadeMode && onExit) {
+    if ((arcadeMode || testLevel) && onExit) {
       const y = getY(e);
       const x = getX(e);
       if (y < 48 && x < 80) { onExit(); return; }
