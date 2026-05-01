@@ -6,55 +6,108 @@ Feature ideas and their current status. Update this as things get built.
 
 ## 🟡 In Progress / Next Up
 
-_Nothing currently in progress._
+### More Campaign Levels
+- Level 10 is the first JSON-built level (linear hoop + metal bar)
+- Goal: reach 100 campaign levels over time
+- Workflow: build in Level Editor → SAVE → drop JSON in `/public/levels/campaign/` → add to `manifest.json` → push
+- No code changes needed to add new levels
 
 ---
 
 ## 📋 Planned Features
 
-### Daily Challenge Mode
-- New game mode: 1 life, sudden death — get as far as you can through the levels
-- Resets daily (same challenge for all players on a given day)
-- Separate leaderboard from the all-time campaign leaderboard
-- **Weekly leaderboard idea:** total levels passed across all daily challenges in a week = weekly score
-- Leaderboard UI: toggle between All-Time / Daily / Weekly views
-- Players can only play the daily challenge once per day
+### Player-Created Levels (Long-Term Vision)
+The biggest long-term goal: let players build and share their own levels from inside the game.
 
-### More Campaign Levels (Goal: 100)
-- Currently levels 1–9 are hand-crafted; 10+ are placeholders
-- Before adding new levels, build out the **mechanic/asset library** so new levels have more variety
-- Existing mechanics: hoop (still, linear, linear_v, rectangle, circle, figure8), metal bar, trampoline
-- Ideas for new mechanics: moving platforms, rotating bars, shrinking/expanding hoops, portals, wind zones
-- Levels should introduce one new mechanic at a time
+**Phase 1 — Admin-only editor (done)**
+- Hidden behind a PIN, accessible from Mode Select → Level Creator
+- Admin builds levels, saves JSON, deploys them as campaign levels
+
+**Phase 2 — Public level submission**
+- Open the Level Editor to all players (remove or lower the PIN gate)
+- Players build a level and submit it — stored in Firebase under their name
+- "Community Levels" mode: browse and play levels made by other players
+- Like / rating system so good levels surface to the top
+
+**Phase 3 — Featured community levels**
+- Best community levels get promoted into the official Campaign
+- Creator gets credited in-game ("Level designed by [name]")
+
+### Daily Challenge Mode
+- 1 life, sudden death — get as far as you can through levels
+- Resets daily, same challenge for all players
+- Separate leaderboard from all-time campaign
+- Weekly leaderboard idea: total levels passed across all daily challenges in a week
+- Players can only play once per day
 
 ### Hack Balls (Arcade Mode Only)
-- Special balls with game-modifying properties — just for fun, not for leaderboard scores
-- Only available in Arcade Mode
-- Ideas:
-  - **Bouncy** — never loses energy, bounces off screen corners forever
-  - **Giant** — huge ball, makes shots harder to thread
-  - **Multi-ball** — multiple balls active at once
-  - **Ghost** — passes through rims, only scores clean center shots
-  - More TBD
+- Special balls with game-modifying properties, just for fun
 - Scores with hack balls do NOT count toward leaderboard
+- Ideas:
+  - **Bouncy** — never loses energy, bounces forever
+  - **Giant** — huge ball, harder to thread through hoops
+  - **Multi-ball** — several balls active at once
+  - **Ghost** — passes through rims, only scores dead-center shots
 
 ### More Ball Skins
-- Noah designs additional PNG skins to add to the skin selector
-- Drop the PNG into `/public/skins/` and add the skin to `BallSkinsScreen.tsx`
+- Drop a PNG into `/public/skins/` and register it in `BallSkinsScreen.tsx`
+- Noah designs the artwork
 
-### Ball Customization (Long-Term)
-- Let players design their own ball (colors, patterns, maybe upload an image)
-- Probably hard as a pure web app — revisit when other features are done
+### Ball Customization (Very Long-Term)
+- Let players pick colors, patterns, or upload a custom image for their ball
+- Revisit once other major features are shipped
+
+### New Level Mechanics
+The level editor currently supports: hoop (all 8 movement patterns), metal bar, trampoline.
+
+Ideas for new mechanics to add to the editor and level system:
+- Rotating bars (spin around a pivot point)
+- Shrinking / expanding hoops
+- Moving platforms the ball lands on
+- Wind zones that push the ball horizontally
+- Portals (enter one side, exit another)
 
 ---
 
 ## ✅ Shipped
 
-- Campaign mode (levels 1–10, 3 lives, global all-time leaderboard)
-- Arcade mode (pick any level, infinite lives, no leaderboard)
-- Ball skins system (basketball default, Paper Ball PNG)
-- Firebase leaderboard (deduped by player name, one entry per player)
-- Levels: static hoop, linear, rectangle path, circle, figure-8, multi-hoop (L5), dual-speed (L7), rectangle-path pair (L8), trampoline + metal bar (L9), tiny still hoop (L10)
-- Anti-stick nudge on rim and metal bar endpoints
-- Scoring CCD (continuous collision detection) — works even with fast-moving hoops
-- Daily challenge leaderboard concept (planned, not built)
+### Core Game
+- Campaign mode — levels 1–9 hardcoded, levels 10+ loaded from JSON files
+- Arcade mode — pick any level, infinite lives, no leaderboard
+- 3 lives per campaign run; lose all 3 → Game Over
+- Win condition — beating the last available campaign level shows "YOU WIN!" screen with "More Levels Coming Soon"
+
+### Level System
+- JSON-based campaign levels in `/public/levels/campaign/` loaded via `manifest.json`
+- Level Editor (admin, PIN-gated) — full canvas drag-and-drop editor with test and save
+- Arcade level select is fully dynamic — shows exactly as many levels as exist, no hardcoding
+
+### Levels Built
+- L1: Tutorial — three fixed shots at different positions
+- L2: Linear moving hoop
+- L3: Rectangle-path hoop
+- L4: Circle-path hoop
+- L5: Multi-hoop shots (score through multiple hoops per shot)
+- L6: Figure-8 hoop
+- L7: Two hoops at different speeds
+- L8: Two rectangle-path hoops offset by 30 frames (trailing effect)
+- L9: Vertically moving hoop + metal bar + trampoline obstacle
+- L10 (JSON): Linear hoop + metal bar (first JSON-built level)
+
+### Physics & Scoring
+- CCD scoring — works correctly even with fast-moving hoops
+- Anti-stick nudge on rim circles and metal bar endpoints
+- Trampoline obstacles (high restitution)
+- Obstacle endpoint circle collisions (prevents ball sticking at corners)
+
+### Leaderboard & Scoring
+- Firebase Realtime Database leaderboard
+- Deduped by player name — one entry per player, only updates on new personal best
+- `gameOverFired` guard prevents duplicate submissions from the animation loop
+- Level completion bonus = current level number added to score
+
+### UI / UX
+- Mode Select screen (Campaign / Arcade / Level Creator)
+- "YOU WIN!" game over screen variant (gold, with "More Levels Coming Soon")
+- Ball skins: Basketball (canvas-drawn), Paper Ball (PNG)
+- Pixel art aesthetic throughout (`Press Start 2P` font, canvas pixel rendering)
