@@ -44,6 +44,8 @@ Each major system has its own doc. **Read the relevant doc before touching that 
 - **Run `npm run build` before committing** to catch TypeScript errors.
 - **Scoring check must stay first** in each substep loop in `GameScreen.tsx` — moving it after rim collision breaks scoring.
 - **gameOverFired guard** — any callback fired from the RAF loop must be wrapped with a one-shot boolean flag to prevent duplicate Firebase submissions.
+- **arcadeMode prop** — in `App.tsx`, `arcadeMode` must only be `true` for actual arcade mode. The expression `arcadeMode || (testLevelData !== null && testLevelReturnScreen === 'leveleditor')` is correct for the `GameScreen` prop — do not simplify it, as `testLevelReturnScreen` defaults to `'leveleditor'` and would make campaign always look like arcade mode.
+- **PWA safe area** — every new screen's root div needs `paddingTop: 'env(safe-area-inset-top, 0px)'` and `boxSizing: 'border-box'`. GameScreen is the exception (canvas uses `marginTop` instead). See `docs/SCREENS.md`.
 
 ## Quick Reference
 

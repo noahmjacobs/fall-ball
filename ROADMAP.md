@@ -16,20 +16,7 @@ Feature ideas and their current status. Update this as things get built.
 
 ## 📋 Planned Features
 
-### Player-Created Levels (Long-Term Vision)
-The biggest long-term goal: let players build and share their own levels from inside the game.
-
-**Phase 1 — Admin-only editor (done)**
-- Hidden behind a PIN, accessible from Mode Select → Level Creator
-- Admin builds levels, saves JSON, deploys them as campaign levels
-
-**Phase 2 — Public level submission**
-- Open the Level Editor to all players (remove or lower the PIN gate)
-- Players build a level and submit it — stored in Firebase under their name
-- "Community Levels" mode: browse and play levels made by other players
-- Like / rating system so good levels surface to the top
-
-**Phase 3 — Featured community levels**
+### Player-Created Levels — Phase 3 (Future)
 - Best community levels get promoted into the official Campaign
 - Creator gets credited in-game ("Level designed by [name]")
 
@@ -106,8 +93,16 @@ Ideas for new mechanics to add to the editor and level system:
 - `gameOverFired` guard prevents duplicate submissions from the animation loop
 - Level completion bonus = current level number added to score
 
+### Community Levels System
+- Players create levels in the same editor as admin, save to Firebase, share publicly
+- Community Levels screen: horizontally scrollable card carousel, newest first
+- My Levels screen: manage own levels (up to 10), edit or delete
+- Community level cards show 1–5 star ratings (average + vote count); one immutable vote per player
+- Community level completion/fail tracked separately from campaign
+
 ### UI / UX
-- Mode Select screen (Campaign / Arcade / Level Creator)
+- Mode Select screen: Daily Challenge (top, disabled) → Campaign → Arcade → Level Creator
 - "YOU WIN!" game over screen variant (gold, with "More Levels Coming Soon")
 - Ball skins: Basketball (canvas-drawn), Paper Ball (PNG)
 - Pixel art aesthetic throughout (`Press Start 2P` font, canvas pixel rendering)
+- PWA homescreen support — `env(safe-area-inset-top)` applied per-screen so content clears the iOS status bar in standalone mode

@@ -112,6 +112,57 @@ See `docs/COMMUNITY_LEVELS.md` for the full user levels API and database structu
 - `deleteUserLevel(playerName, levelId)` → removes from both paths
 - `subscribeCommunityLevels(callback)` → live feed, newest first, up to 200
 
+## Level Ratings
+
+Players can rate community levels 1–5 stars. Each player gets exactly one vote per level — immutable after submission.
+
+**DB path:** `fallball/level_ratings/[levelId]/[playerKey]`
+
+```
+fallball/
+  level_ratings/
+    [levelId]/
+      [playerKey]/
+        playerName: "Noah"
+        rating: 4
+        ratedAt: 1714000000000
+```
+
+**Firebase Rules:** The `level_ratings` path must allow read/write in Firebase Database Rules.
+
+### API
+
+```typescript
+// Fetch average rating + vote count + current player's rating (null if not voted)
+getLevelRatingSummary(levelId: string, playerKey?: string): Promise<RatingSummary>
+
+// Submit a rating. No-ops silently if the player already rated (immutable)
+submitLevelRating(levelId: string, playerName: string, rating: number): Promise<void>
+
+interface RatingSummary {
+  avg: number;        // 0 if no votes
+  count: number;
+  userRating: number | null;  // null = player hasn't voted yet
+}
+```
+
+### Race Condition Warning
+
+`CommunityLevelsScreen` fetches ratings on mount. If a player rates a level and the background fetch completes *after* the optimistic update, it would overwrite `userRating` back to `null`. The fetch callback guards against this:
+
+```typescript
+getLevelRatingSummary(level.id, pKey).then(summary => {
+  setRatingsMap(r => {
+    const existing = r[level.id];
+    // Preserve any optimistic rating already applied
+    if (existing && existing !== 'loading' && existing.userRating !== null) {
+      return { ...r, [level.id]: { ...summary, userRating: existing.userRating } };
+    }
+    return { ...r, [level.id]: summary };
+  });
+});
+```
+
 ## Config
 
 The Firebase config (API key, database URL, etc.) is hardcoded in `firebase.ts`. This is safe for Firebase Realtime Database — the API key is a project identifier, not a secret. Security is enforced by Firebase Database Rules, not by hiding the key.

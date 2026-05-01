@@ -33,6 +33,23 @@ Writing to both paths keeps per-user queries (`user_levels/[key]`) and the commu
 | `getUserLevels(playerName)` | Fetch all levels for a player, newest first. |
 | `deleteUserLevel(playerName, levelId)` | Remove from both `user_levels` and `community_feed`. |
 | `subscribeCommunityLevels(callback)` | Live subscription, newest first, up to 200 levels. Returns unsubscribe fn. |
+| `getLevelRatingSummary(levelId, playerKey?)` | Fetch average rating, vote count, and the current player's rating (`null` if unvoted). |
+| `submitLevelRating(levelId, playerName, rating)` | Submit a 1–5 star rating. No-ops silently if player already rated (immutable). |
+
+## Star Ratings
+
+Each community level card shows a 1–5 star row. Ratings are immutable — once submitted they cannot be changed.
+
+**DB path:** `fallball/level_ratings/[levelId]/[playerKey]`
+
+**Lock mechanism:** `StarRow` uses both a `useRef` (fires synchronously, blocks rapid second taps before React re-renders) and a `useState` (triggers re-render to visually lock the stars). This is important — using only `useState` allows a second tap to slip through while the first re-render is pending.
+
+**Race condition guard:** The background fetch in `CommunityLevelsScreen` preserves any optimistic rating already in state. If `existing.userRating !== null`, the fetch result's `userRating` field is ignored (see `docs/FIREBASE.md` for details).
+
+**Firebase Rules:** The `level_ratings` path must be explicitly permitted in Firebase Database Rules:
+```json
+"level_ratings": { ".read": true, ".write": true }
+```
 
 ## Screens
 
@@ -46,9 +63,11 @@ Hub with three main buttons:
 Props: `playerName, onAdminAccess, onCreateLevel, onCommunityLevels, onMyLevels, onBack`
 
 ### CommunityLevelsScreen (`src/components/CommunityLevelsScreen.tsx`)
-Horizontally scrollable card carousel (scroll-snap). Each card shows level name, creator, date, hoop count, makes count, and a ▶ PLAY button.
+Horizontally scrollable card carousel (scroll-snap). Each card shows level name, creator, date, hoop count, makes count, a 1–5 star rating row (with average and vote count), and a ▶ PLAY button.
 
-Props: `onPlay(level: UserLevel), onBack`
+Props: `playerName, onPlay(level: UserLevel), onBack`
+
+The `playerName` prop is required to determine whether the current player has already rated a level and to submit new ratings.
 
 ### MyLevelsScreen (`src/components/MyLevelsScreen.tsx`)
 Vertical list of the current player's levels with level count progress bar (x / 10). Each row has EDIT and DEL buttons; DEL shows inline confirmation before deleting.

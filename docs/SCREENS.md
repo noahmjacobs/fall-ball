@@ -55,7 +55,7 @@ Canvas background with twinkling stars and animated pixel ball. Three buttons: P
 ---
 
 ### ModeSelectScreen
-Four options: CAMPAIGN (active), ARCADE (active), DAILY CHALLENGE (disabled, coming soon), LEVEL CREATOR (active, goes to coming-soon screen).
+Four buttons in order (top to bottom): DAILY CHALLENGE (disabled, coming soon), CAMPAIGN (active), ARCADE (active), LEVEL CREATOR (active).
 
 **Props:** `onCampaign`, `onArcade`, `onLevelCreator`, `onBack`
 
@@ -120,9 +120,9 @@ Hub screen with three main buttons (COMMUNITY, CREATE LEVEL, MY LEVELS) and a hi
 ---
 
 ### CommunityLevelsScreen
-Horizontally scrollable card carousel of all published levels, newest first. Each card has a ▶ PLAY button. See `docs/COMMUNITY_LEVELS.md`.
+Horizontally scrollable card carousel of all published levels, newest first. Each card shows level name, creator, date, hoop count, makes count, a 1–5 star rating row, and a ▶ PLAY button. See `docs/COMMUNITY_LEVELS.md`.
 
-**Props:** `onPlay(level: UserLevel)`, `onBack`
+**Props:** `playerName`, `onPlay(level: UserLevel)`, `onBack`
 
 ---
 
@@ -137,6 +137,16 @@ Vertical list of the current player's levels with edit/delete controls and a pro
 Full level editor. Supports `mode='admin'` (JSON download + open file) and `mode='user'` (cloud save button). See `docs/LEVEL_EDITOR.md` and `docs/COMMUNITY_LEVELS.md`.
 
 **Props:** `onBack`, `onTest(levelData)`, `initialData?`, `mode?`, `onSaveToCloud?`
+
+## PWA Safe Area
+
+The app is installable to the iOS homescreen (`apple-mobile-web-app-capable`, `viewport-fit=cover`, `black-translucent` status bar). In standalone PWA mode `env(safe-area-inset-top)` resolves to ~50px; in the browser it resolves to 0.
+
+**Each screen's root div** has `paddingTop: 'env(safe-area-inset-top, 0px)'` and `boxSizing: 'border-box'` so content clears the status bar without clipping anything at the bottom.
+
+**GameScreen** is the exception — it uses the canvas `marginTop: env(safe-area-inset-top, 0px)` approach instead, and reads the safe area in JS to subtract from the canvas height so drawing coordinates stay correct.
+
+If you add a new screen, add `paddingTop: 'env(safe-area-inset-top, 0px)'` and `boxSizing: 'border-box'` to its root div.
 
 ## Name Entry
 
