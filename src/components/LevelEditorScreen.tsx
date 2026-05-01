@@ -12,6 +12,8 @@ interface Props {
   onBack: () => void;
   onTest: (data: LevelData) => void;
   initialData?: LevelData;
+  mode?: 'admin' | 'user';
+  onSaveToCloud?: (data: LevelData) => Promise<void>;
 }
 
 let _nextId = 1;
@@ -93,7 +95,7 @@ function drawHoop(ctx: CanvasRenderingContext2D, hx: number, hy: number, innerHa
   ctx.restore();
 }
 
-export default function LevelEditorScreen({ onBack, onTest, initialData }: Props) {
+export default function LevelEditorScreen({ onBack, onTest, initialData, mode = 'admin', onSaveToCloud }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
   const frameRef = useRef(0);
@@ -107,6 +109,7 @@ export default function LevelEditorScreen({ onBack, onTest, initialData }: Props
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [drawPreview, setDrawPreview] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
+  const [cloudSaveState, setCloudSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   const drawingRef = useRef<{ x1: number; y1: number } | null>(null);
   const dragRef = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
@@ -346,6 +349,19 @@ export default function LevelEditorScreen({ onBack, onTest, initialData }: Props
     fileInputRef.current?.click();
   }
 
+  async function saveToCloud() {
+    if (!onSaveToCloud) return;
+    setCloudSaveState('saving');
+    try {
+      await onSaveToCloud({ name: levelName, makesNeeded, hoops, obstacles });
+      setCloudSaveState('saved');
+      setTimeout(() => setCloudSaveState('idle'), 2000);
+    } catch {
+      setCloudSaveState('error');
+      setTimeout(() => setCloudSaveState('idle'), 3000);
+    }
+  }
+
   function onFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -412,48 +428,66 @@ export default function LevelEditorScreen({ onBack, onTest, initialData }: Props
             style={{ ...smallBtn, color: hasContent ? '#00ff88' : '#333', borderColor: hasContent ? '#00ff88' : '#333' }}
           >▶ TEST</button>
 
-          {/* Save / Open dropdown */}
-          <div style={{ position: 'relative' }}>
+          {/* Save button — user mode: simple cloud save; admin mode: dropdown with file save + open */}
+          {mode === 'user' ? (
             <button
-              onClick={() => setSaveMenuOpen(o => !o)}
-              style={{ ...smallBtn, color: '#4488ff', borderColor: '#4488ff', paddingRight: 10 }}
-            >↓ SAVE ▾</button>
+              onClick={saveToCloud}
+              disabled={!hasContent || cloudSaveState === 'saving'}
+              style={{
+                ...smallBtn,
+                color: cloudSaveState === 'saved' ? '#00ff88'
+                     : cloudSaveState === 'error' ? '#ff4444'
+                     : hasContent ? '#ff69b4' : '#333',
+                borderColor: cloudSaveState === 'saved' ? '#00ff88'
+                           : cloudSaveState === 'error' ? '#ff4444'
+                           : hasContent ? '#ff69b4' : '#333',
+              }}
+            >
+              {cloudSaveState === 'saving' ? '...' : cloudSaveState === 'saved' ? '✓ SAVED' : cloudSaveState === 'error' ? '✗ ERR' : '☁ SAVE'}
+            </button>
+          ) : (
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setSaveMenuOpen(o => !o)}
+                style={{ ...smallBtn, color: '#4488ff', borderColor: '#4488ff', paddingRight: 10 }}
+              >↓ SAVE ▾</button>
 
-            {saveMenuOpen && (
-              <>
-                {/* Backdrop to close on outside tap */}
-                <div
-                  onClick={() => setSaveMenuOpen(false)}
-                  style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-                />
-                <div style={{
-                  position: 'absolute', top: '100%', right: 0, marginTop: 4,
-                  background: '#0d0d20', border: '2px solid #4488ff',
-                  boxShadow: '4px 4px 0 rgba(0,0,0,0.6)',
-                  zIndex: 100, minWidth: 130,
-                  display: 'flex', flexDirection: 'column',
-                }}>
-                  <button
-                    onClick={saveJSON}
-                    disabled={!hasContent}
-                    style={{
-                      ...smallBtn, border: 'none', borderBottom: '1px solid #222244',
-                      color: hasContent ? '#4488ff' : '#444', padding: '10px 14px',
-                      textAlign: 'left', borderRadius: 0,
-                    }}
-                  >↓ SAVE</button>
-                  <button
-                    onClick={openFile}
-                    style={{
-                      ...smallBtn, border: 'none',
-                      color: '#ffd700', padding: '10px 14px',
-                      textAlign: 'left', borderRadius: 0,
-                    }}
-                  >📂 OPEN FILE</button>
-                </div>
-              </>
-            )}
-          </div>
+              {saveMenuOpen && (
+                <>
+                  {/* Backdrop to close on outside tap */}
+                  <div
+                    onClick={() => setSaveMenuOpen(false)}
+                    style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                  />
+                  <div style={{
+                    position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                    background: '#0d0d20', border: '2px solid #4488ff',
+                    boxShadow: '4px 4px 0 rgba(0,0,0,0.6)',
+                    zIndex: 100, minWidth: 130,
+                    display: 'flex', flexDirection: 'column',
+                  }}>
+                    <button
+                      onClick={saveJSON}
+                      disabled={!hasContent}
+                      style={{
+                        ...smallBtn, border: 'none', borderBottom: '1px solid #222244',
+                        color: hasContent ? '#4488ff' : '#444', padding: '10px 14px',
+                        textAlign: 'left', borderRadius: 0,
+                      }}
+                    >↓ SAVE</button>
+                    <button
+                      onClick={openFile}
+                      style={{
+                        ...smallBtn, border: 'none',
+                        color: '#ffd700', padding: '10px 14px',
+                        textAlign: 'left', borderRadius: 0,
+                      }}
+                    >📂 OPEN FILE</button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Hidden file input */}

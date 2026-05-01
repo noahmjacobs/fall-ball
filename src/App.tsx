@@ -7,13 +7,20 @@ import LevelSelectScreen from './components/LevelSelectScreen';
 import ModeSelectScreen from './components/ModeSelectScreen';
 import LevelCreatorScreen from './components/LevelCreatorScreen';
 import LevelEditorScreen from './components/LevelEditorScreen';
+import CommunityLevelsScreen from './components/CommunityLevelsScreen';
+import MyLevelsScreen from './components/MyLevelsScreen';
+import CommunityLevelCompleteScreen from './components/CommunityLevelCompleteScreen';
 import BallSkinsScreen, { type BallSkin } from './components/BallSkinsScreen';
 import NameEntryModal from './components/NameEntryModal';
-import { submitScore } from './firebase';
-import type { LevelData } from './types/level';
+import { submitScore, saveUserLevel, recordLevelCompletion } from './firebase';
+import type { LevelData, UserLevel } from './types/level';
+
 import { loadCampaignLevels } from './levelLoader';
 
-type Screen = 'start' | 'modeselect' | 'game' | 'gameover' | 'leaderboard' | 'levelselect' | 'skins' | 'levelcreator' | 'leveleditor';
+type Screen =
+  | 'start' | 'modeselect' | 'game' | 'gameover' | 'leaderboard'
+  | 'levelselect' | 'skins' | 'levelcreator' | 'leveleditor'
+  | 'communitylevels' | 'mylevels' | 'communitycomplete' | 'communityfail';
 
 interface GameResult { score: number; level: number; }
 
@@ -30,6 +37,13 @@ export default function App() {
   const [editorDraft, setEditorDraft] = useState<LevelData | null>(null);
   const [campaignLevels, setCampaignLevels] = useState<LevelData[]>([]);
   const [gameWon, setGameWon] = useState(false);
+
+  // Community levels / user editor state
+  const [editorMode, setEditorMode] = useState<'admin' | 'user'>('admin');
+  const [editorBackDest, setEditorBackDest] = useState<Screen>('levelcreator');
+  const [editingUserLevelId, setEditingUserLevelId] = useState<string | null>(null);
+  const [testLevelReturnScreen, setTestLevelReturnScreen] = useState<Screen>('leveleditor');
+  const [currentCommunityLevel, setCurrentCommunityLevel] = useState<UserLevel | null>(null);
 
   useEffect(() => {
     const savedName = localStorage.getItem('fallball_name') || '';
@@ -74,6 +88,13 @@ export default function App() {
   }, []);
 
   const handleGameOver = useCallback(async (score: number, level: number) => {
+    // Community level fail — don't record completion, show fail screen
+    if (testLevelReturnScreen === 'communitylevels' && currentCommunityLevel) {
+      setTestLevelData(null);
+      setScreen('communityfail');
+      return;
+    }
+    // Campaign game over
     setGameWon(false);
     setLastResult({ score, level });
     if (score > personalBest) {
@@ -84,9 +105,19 @@ export default function App() {
       try { await submitScore(playerName, score, level); } catch (_) {}
     }
     setScreen('gameover');
-  }, [playerName, personalBest]);
+  }, [playerName, personalBest, testLevelReturnScreen, currentCommunityLevel]);
 
   const handleGameWon = useCallback(async (score: number, level: number) => {
+    // Community level completion — go to dedicated screen and record it
+    if (testLevelReturnScreen === 'communitylevels' && currentCommunityLevel) {
+      if (playerName) {
+        try { await recordLevelCompletion(currentCommunityLevel.id, playerName); } catch (_) {}
+      }
+      setTestLevelData(null);
+      setScreen('communitycomplete');
+      return;
+    }
+    // Campaign win
     setGameWon(true);
     setLastResult({ score, level });
     if (score > personalBest) {
@@ -97,7 +128,63 @@ export default function App() {
       try { await submitScore(playerName, score, level); } catch (_) {}
     }
     setScreen('gameover');
-  }, [playerName, personalBest]);
+  }, [playerName, personalBest, testLevelReturnScreen, currentCommunityLevel]);
+
+  // ── Level Creator hub handlers ──────────────────────────────────────────────
+
+  /** Admin access: open editor in admin mode */
+  const handleAdminAccess = useCallback(() => {
+    setEditorMode('admin');
+    setEditorBackDest('levelcreator');
+    setEditingUserLevelId(null);
+    setEditorDraft(null);
+    setScreen('leveleditor');
+  }, []);
+
+  /** User clicks "Create Level" */
+  const handleCreateLevel = useCallback(() => {
+    if (!playerName) { setShowNameEntry(true); return; }
+    setEditorMode('user');
+    setEditorBackDest('levelcreator');
+    setEditingUserLevelId(null);
+    setEditorDraft(null);
+    setScreen('leveleditor');
+  }, [playerName]);
+
+  /** User edits an existing level from My Levels */
+  const handleEditUserLevel = useCallback((level: UserLevel) => {
+    setEditorMode('user');
+    setEditorBackDest('mylevels');
+    setEditingUserLevelId(level.id);
+    setEditorDraft({ name: level.name, makesNeeded: level.makesNeeded, hoops: level.hoops, obstacles: level.obstacles });
+    setScreen('leveleditor');
+  }, []);
+
+  /** Save level to Firebase (called by LevelEditorScreen in user mode) */
+  const handleSaveToCloud = useCallback(async (data: LevelData) => {
+    if (!playerName) throw new Error('No player name');
+    const id = await saveUserLevel(playerName, data, editingUserLevelId ?? undefined);
+    // On first save, store ID so subsequent saves are updates not creates
+    setEditingUserLevelId(id);
+  }, [playerName, editingUserLevelId]);
+
+  /** Play a community level */
+  const handlePlayCommunityLevel = useCallback((level: UserLevel) => {
+    const data: LevelData = { name: level.name, makesNeeded: level.makesNeeded, hoops: level.hoops, obstacles: level.obstacles };
+    setCurrentCommunityLevel(level);
+    setTestLevelData(data);
+    setTestLevelReturnScreen('communitylevels');
+    setArcadeMode(false);
+    setScreen('game');
+  }, []);
+
+  /** Test level from editor */
+  const handleTestLevel = useCallback((data: LevelData) => {
+    setEditorDraft(data);
+    setTestLevelData(data);
+    setTestLevelReturnScreen('leveleditor');
+    setScreen('game');
+  }, []);
 
   return (
     <div style={{
@@ -120,15 +207,57 @@ export default function App() {
       )}
       {screen === 'levelcreator' && (
         <LevelCreatorScreen
-          onAdminAccess={() => setScreen('leveleditor')}
+          playerName={playerName}
+          onAdminAccess={handleAdminAccess}
+          onCreateLevel={handleCreateLevel}
+          onCommunityLevels={() => setScreen('communitylevels')}
+          onMyLevels={() => setScreen('mylevels')}
           onBack={() => setScreen('modeselect')}
         />
       )}
       {screen === 'leveleditor' && (
         <LevelEditorScreen
-          onBack={() => setScreen('levelcreator')}
-          onTest={(data) => { setEditorDraft(data); setTestLevelData(data); setScreen('game'); }}
+          onBack={() => setScreen(editorBackDest)}
+          onTest={handleTestLevel}
           initialData={editorDraft ?? undefined}
+          mode={editorMode}
+          onSaveToCloud={editorMode === 'user' ? handleSaveToCloud : undefined}
+        />
+      )}
+      {screen === 'communitylevels' && (
+        <CommunityLevelsScreen
+          playerName={playerName}
+          onPlay={handlePlayCommunityLevel}
+          onBack={() => setScreen('levelcreator')}
+        />
+      )}
+      {screen === 'communitycomplete' && currentCommunityLevel && (
+        <CommunityLevelCompleteScreen
+          levelName={currentCommunityLevel.name}
+          creatorName={currentCommunityLevel.creatorName}
+          playerName={playerName}
+          failed={false}
+          onPlayAgain={() => handlePlayCommunityLevel(currentCommunityLevel)}
+          onCommunity={() => { setCurrentCommunityLevel(null); setScreen('communitylevels'); }}
+          onHome={() => { setCurrentCommunityLevel(null); setScreen('start'); }}
+        />
+      )}
+      {screen === 'communityfail' && currentCommunityLevel && (
+        <CommunityLevelCompleteScreen
+          levelName={currentCommunityLevel.name}
+          creatorName={currentCommunityLevel.creatorName}
+          playerName={playerName}
+          failed={true}
+          onPlayAgain={() => handlePlayCommunityLevel(currentCommunityLevel)}
+          onCommunity={() => { setCurrentCommunityLevel(null); setScreen('communitylevels'); }}
+          onHome={() => { setCurrentCommunityLevel(null); setScreen('start'); }}
+        />
+      )}
+      {screen === 'mylevels' && (
+        <MyLevelsScreen
+          playerName={playerName}
+          onEdit={handleEditUserLevel}
+          onBack={() => setScreen('levelcreator')}
         />
       )}
       {screen === 'skins' && (
@@ -142,10 +271,10 @@ export default function App() {
           onGameOver={handleGameOver}
           onGameWon={handleGameWon}
           personalBest={personalBest}
-          arcadeMode={testLevelData ? true : arcadeMode}
+          arcadeMode={arcadeMode || (testLevelData !== null && testLevelReturnScreen === 'leveleditor')}
           startLevel={arcadeMode ? arcadeStartLevel : 1}
           onExit={() => {
-            const dest = testLevelData ? 'leveleditor' : arcadeMode ? 'levelselect' : 'modeselect';
+            const dest: Screen = testLevelData ? testLevelReturnScreen : arcadeMode ? 'levelselect' : 'modeselect';
             setTestLevelData(null);
             setScreen(dest);
           }}

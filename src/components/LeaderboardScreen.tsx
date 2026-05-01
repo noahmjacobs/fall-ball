@@ -86,10 +86,6 @@ export default function LeaderboardScreen({ playerName, onBack }: Props) {
       <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 390, height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'], paddingBottom: 'max(80px, calc(env(safe-area-inset-bottom, 0px) + 80px))' }}>
         <div style={{ padding: '20px 16px 0', textAlign: 'center' }}>
           <div style={{ fontSize: 18, color: '#ffd700', textShadow: '2px 2px 0 #8B6914', letterSpacing: 2, marginBottom: 12 }}>LEADERBOARD</div>
-          <div style={{ background: 'rgba(26, 0, 60, 0.9)', border: '3px solid #ffd700', boxShadow: '4px 4px 0 rgba(0,0,0,0.5)', padding: '10px 14px', marginBottom: 16, textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: '#ffd700', letterSpacing: 1, marginBottom: 6 }}>💰 $20 DOLLAR PRIZE 💰</div>
-            <div style={{ fontSize: 7, color: '#ff69b4', letterSpacing: 1 }}>Which cousin will win?</div>
-          </div>
           <div style={{ width: '100%', height: '3px', background: 'repeating-linear-gradient(90deg, #ffd700 0px, #ffd700 8px, transparent 8px, transparent 12px)', marginBottom: 12 }} />
         </div>
 

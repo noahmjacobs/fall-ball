@@ -119,6 +119,26 @@ export default function ModeSelectScreen({ onCampaign, onArcade, onLevelCreator,
         paddingTop: 40,
       }}>
 
+        {/* DAILY CHALLENGE — coming soon */}
+        <button
+          disabled
+          style={{
+            ...btnBase,
+            background: 'transparent',
+            color: '#666688',
+            border: '3px solid #44446688',
+            boxShadow: 'none',
+            fontSize: 11,
+            padding: '14px 28px',
+            letterSpacing: 2,
+            cursor: 'not-allowed',
+            opacity: 0.6,
+          }}
+        >
+          <span>DAILY CHALLENGE</span>
+          <span style={{ fontSize: 7, color: '#555577', letterSpacing: 1 }}>COMING SOON</span>
+        </button>
+
         {/* CAMPAIGN */}
         <button
           onClick={onCampaign}
@@ -164,26 +184,6 @@ export default function ModeSelectScreen({ onCampaign, onArcade, onLevelCreator,
           <span style={{ fontSize: 7, color: '#00ffff88', letterSpacing: 1 }}>PICK ANY LEVEL · NO LIVES</span>
         </button>
 
-        {/* DAILY CHALLENGE — coming soon */}
-        <button
-          disabled
-          style={{
-            ...btnBase,
-            background: 'transparent',
-            color: '#666688',
-            border: '3px solid #44446688',
-            boxShadow: 'none',
-            fontSize: 11,
-            padding: '14px 28px',
-            letterSpacing: 2,
-            cursor: 'not-allowed',
-            opacity: 0.6,
-          }}
-        >
-          <span>DAILY CHALLENGE</span>
-          <span style={{ fontSize: 7, color: '#555577', letterSpacing: 1 }}>COMING SOON</span>
-        </button>
-
         {/* LEVEL CREATOR */}
         <button
           onClick={onLevelCreator}
@@ -202,8 +202,8 @@ export default function ModeSelectScreen({ onCampaign, onArcade, onLevelCreator,
           onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
           onTouchEnd={e => (e.currentTarget.style.transform = '')}
         >
-          <span>✏ LEVEL CREATOR</span>
-          <span style={{ fontSize: 7, color: '#ffd70088', letterSpacing: 1 }}>COMING SOON</span>
+          <span>LEVEL CREATOR</span>
+          <span style={{ fontSize: 7, color: '#ffd70088', letterSpacing: 1 }}>BUILD · SHARE · PLAY</span>
         </button>
 
       </div>

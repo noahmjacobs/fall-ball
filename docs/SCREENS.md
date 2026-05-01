@@ -11,7 +11,11 @@
   │     ├─► 'levelselect'
   │     │     └─► 'game'   (Arcade)
   │     └─► 'levelcreator'
-  │           └─► 'leveleditor'
+  │           ├─► 'communitylevels'
+  │           │     └─► 'game'  (Play community level)
+  │           ├─► 'mylevels'
+  │           │     └─► 'leveleditor' (Edit existing)
+  │           └─► 'leveleditor' (Create new / Admin)
   │                 └─► 'game'  (Test mode)
   ├─► 'leaderboard'
   └─► 'skins'
@@ -30,12 +34,16 @@
 | `ballSkin` | Selected skin, persisted to `localStorage` |
 | `arcadeMode` | `true` when playing from Arcade level select |
 | `arcadeStartLevel` | Which level arcade mode starts at |
-| `testLevelData` | Set when editor hits TEST; cleared when test game exits |
+| `testLevelData` | Set when editor hits TEST or community level PLAY; cleared when test game exits |
 | `editorDraft` | Saves editor state so it can be restored after a test |
 | `campaignLevels` | `LevelData[]` loaded from JSON on mount via `loadCampaignLevels()` |
 | `gameWon` | `true` when the last JSON level was beaten; drives `GameOverScreen` win variant |
 | `showNameEntry` | Controls whether `NameEntryModal` is overlaid |
 | `lastResult` | `{score, level}` stored at game end, used by `GameOverScreen` |
+| `editorMode` | `'admin'\|'user'` — passed to LevelEditorScreen |
+| `editorBackDest` | Where editor's ← BACK button goes (`'levelcreator'` or `'mylevels'`) |
+| `editingUserLevelId` | Firebase ID for the level being edited; `null` = new level |
+| `testLevelReturnScreen` | Where EXIT returns after playing a test/community level |
 
 ## Each Screen
 
@@ -105,16 +113,30 @@ Grid of available skins. Tapping a skin calls `onSelect` immediately (no confirm
 ---
 
 ### LevelCreatorScreen
-"Coming Soon" public screen with hidden ADMIN button. See `docs/LEVEL_EDITOR.md`.
+Hub screen with three main buttons (COMMUNITY, CREATE LEVEL, MY LEVELS) and a hidden ADMIN button. See `docs/COMMUNITY_LEVELS.md` and `docs/LEVEL_EDITOR.md`.
 
-**Props:** `onAdminAccess`, `onBack`
+**Props:** `playerName`, `onAdminAccess`, `onCreateLevel`, `onCommunityLevels`, `onMyLevels`, `onBack`
+
+---
+
+### CommunityLevelsScreen
+Horizontally scrollable card carousel of all published levels, newest first. Each card has a ▶ PLAY button. See `docs/COMMUNITY_LEVELS.md`.
+
+**Props:** `onPlay(level: UserLevel)`, `onBack`
+
+---
+
+### MyLevelsScreen
+Vertical list of the current player's levels with edit/delete controls and a progress bar (x / 10). See `docs/COMMUNITY_LEVELS.md`.
+
+**Props:** `playerName`, `onEdit(level: UserLevel)`, `onBack`
 
 ---
 
 ### LevelEditorScreen
-Full level editor. See `docs/LEVEL_EDITOR.md`.
+Full level editor. Supports `mode='admin'` (JSON download + open file) and `mode='user'` (cloud save button). See `docs/LEVEL_EDITOR.md` and `docs/COMMUNITY_LEVELS.md`.
 
-**Props:** `onBack`, `onTest(levelData)`, `initialData?`
+**Props:** `onBack`, `onTest(levelData)`, `initialData?`, `mode?`, `onSaveToCloud?`
 
 ## Name Entry
 

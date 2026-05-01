@@ -30,3 +30,12 @@ export interface LevelData {
   hoops: EditorHoop[];
   obstacles: EditorObstacle[];
 }
+
+// A user-created level stored in Firebase
+export interface UserLevel extends LevelData {
+  id: string;
+  creatorName: string;
+  creatorKey: string;
+  createdAt: number;
+  updatedAt: number;
+}
