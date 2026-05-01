@@ -308,11 +308,17 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
     level1Shot2Y: 0, level1Shot3Y: 0,
   });
   const rafRef = useRef(0);
-  const canvasHeight = useRef(Math.min(window.innerHeight, 844));
+  const canvasHeight = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const h = Math.min(window.innerHeight, 844);
+    // Read safe-area-inset-top so the game canvas sits below the status bar in PWA mode
+    const safeEl = document.createElement('div');
+    safeEl.style.paddingTop = 'env(safe-area-inset-top, 0px)';
+    document.body.appendChild(safeEl);
+    const safeTop = parseInt(window.getComputedStyle(safeEl).paddingTop) || 0;
+    document.body.removeChild(safeEl);
+    const h = Math.min(window.innerHeight - safeTop, 844);
     canvasHeight.current = h;
     const s = stateRef.current;
     s.canvasHeight = h;
@@ -871,13 +877,10 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
     s.rimHitThisShot = false;
   }, []);
 
-  const ch = Math.min(window.innerHeight, 844);
   return (
     <canvas
       ref={canvasRef}
-      width={CW}
-      height={ch}
-      style={{ display: 'block', width: '100%', height: '100dvh', imageRendering: 'pixelated', touchAction: 'none' }}
+      style={{ display: 'block', width: '100%', height: 'calc(100dvh - env(safe-area-inset-top, 0px))', imageRendering: 'pixelated', touchAction: 'none' }}
       onTouchStart={onDown}
       onTouchMove={onMove}
       onTouchEnd={onUp}

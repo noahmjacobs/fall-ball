@@ -190,7 +190,9 @@ export default function App() {
     <div style={{
       width: '100%', maxWidth: 390, height: '100dvh',
       margin: '0 auto', position: 'relative', overflow: 'hidden',
-      background: '#1a1035'
+      background: '#1a1035',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      boxSizing: 'border-box',
     }}>
       {showNameEntry && <NameEntryModal onSubmit={handleNameSubmit} />}
 
