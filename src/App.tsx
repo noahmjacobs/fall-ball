@@ -10,7 +10,8 @@ import LevelEditorScreen from './components/LevelEditorScreen';
 import CommunityLevelsScreen from './components/CommunityLevelsScreen';
 import MyLevelsScreen from './components/MyLevelsScreen';
 import CommunityLevelCompleteScreen from './components/CommunityLevelCompleteScreen';
-import BallSkinsScreen, { type BallSkin } from './components/BallSkinsScreen';
+import BallSkinsScreen, { type BallSkin, refreshCustomBallCache, type CustomSlot } from './components/BallSkinsScreen';
+import CustomBallEditorScreen from './components/CustomBallEditorScreen';
 import NameEntryModal from './components/NameEntryModal';
 import { submitScore, saveUserLevel, recordLevelCompletion } from './firebase';
 import type { LevelData, UserLevel } from './types/level';
@@ -20,7 +21,8 @@ import { loadCampaignLevels } from './levelLoader';
 type Screen =
   | 'start' | 'modeselect' | 'game' | 'gameover' | 'leaderboard'
   | 'levelselect' | 'skins' | 'levelcreator' | 'leveleditor'
-  | 'communitylevels' | 'mylevels' | 'communitycomplete' | 'communityfail';
+  | 'communitylevels' | 'mylevels' | 'communitycomplete' | 'communityfail'
+  | 'customballeditor';
 
 interface GameResult { score: number; level: number; }
 
@@ -37,6 +39,7 @@ export default function App() {
   const [editorDraft, setEditorDraft] = useState<LevelData | null>(null);
   const [campaignLevels, setCampaignLevels] = useState<LevelData[]>([]);
   const [gameWon, setGameWon] = useState(false);
+  const [customSlot, setCustomSlot] = useState<CustomSlot>('custom1');
 
   // Community levels / user editor state
   const [editorMode, setEditorMode] = useState<'admin' | 'user'>('admin');
@@ -52,12 +55,23 @@ export default function App() {
     setPlayerName(savedName);
     setPersonalBest(savedBest);
     setBallSkin(savedSkin);
+    refreshCustomBallCache();
     loadCampaignLevels().then(levels => setCampaignLevels(levels));
   }, []);
 
   const handleSkinSelect = useCallback((skin: BallSkin) => {
     setBallSkin(skin);
     localStorage.setItem('fallball_skin', skin);
+  }, []);
+
+  const handleCustomize = useCallback((slot: CustomSlot) => {
+    setCustomSlot(slot);
+    setScreen('customballeditor');
+  }, []);
+
+  const handleCustomBallSaved = useCallback((slot: CustomSlot) => {
+    refreshCustomBallCache();
+    setScreen('skins');
   }, []);
 
   const handlePlay = useCallback(() => {
@@ -261,7 +275,10 @@ export default function App() {
         />
       )}
       {screen === 'skins' && (
-        <BallSkinsScreen currentSkin={ballSkin} onSelect={handleSkinSelect} onBack={() => setScreen('start')} />
+        <BallSkinsScreen currentSkin={ballSkin} onSelect={handleSkinSelect} onBack={() => setScreen('start')} onCustomize={handleCustomize} />
+      )}
+      {screen === 'customballeditor' && (
+        <CustomBallEditorScreen slot={customSlot} onBack={() => setScreen('skins')} onSaved={handleCustomBallSaved} />
       )}
       {screen === 'levelselect' && (
         <LevelSelectScreen onSelect={handleArcadeSelect} onBack={() => setScreen('modeselect')} totalLevels={9 + campaignLevels.length} />

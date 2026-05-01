@@ -2,7 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 export type BallSkin =
   | 'basketball' | 'baseball' | 'soccer'
   | 'watermelon' | 'sun' | 'moon' | 'golf' | 'smiley'
-  | 'eightball' | 'earth' | 'spiky' | 'eyeball';
+  | 'eightball' | 'earth' | 'spiky' | 'eyeball'
+  | 'custom1' | 'custom2' | 'custom3';
+
+export type CustomSlot = 'custom1' | 'custom2' | 'custom3';
 
 export const SKINS: { id: BallSkin; name: string }[] = [
   { id: 'basketball', name: 'BASKETBALL' },
@@ -17,12 +20,73 @@ export const SKINS: { id: BallSkin; name: string }[] = [
   { id: 'earth',      name: 'EARTH' },
   { id: 'spiky',      name: 'SPIKY' },
   { id: 'eyeball',    name: 'EYEBALL' },
+  { id: 'custom1',    name: 'CUSTOM 1' },
+  { id: 'custom2',    name: 'CUSTOM 2' },
+  { id: 'custom3',    name: 'CUSTOM 3' },
 ];
+
+export interface CustomBallData {
+  name: string;
+  pixels: string[]; // GRID*GRID hex colors, '' = white base
+  dataUrl: string;
+}
+
+const CUSTOM_GRID = 32;
+const CUSTOM_BALL_CX = CUSTOM_GRID / 2;
+const CUSTOM_BALL_CY = CUSTOM_GRID / 2;
+const CUSTOM_BALL_R = 15;
+
+export function isCustomBallPixel(col: number, row: number): boolean {
+  const dx = col + 0.5 - CUSTOM_BALL_CX;
+  const dy = row + 0.5 - CUSTOM_BALL_CY;
+  return dx * dx + dy * dy <= CUSTOM_BALL_R * CUSTOM_BALL_R;
+}
+
+export function loadCustomBallData(slot: CustomSlot): CustomBallData | null {
+  try {
+    const s = localStorage.getItem(`fallball_${slot}`);
+    return s ? (JSON.parse(s) as CustomBallData) : null;
+  } catch { return null; }
+}
+
+export function renderPixelsToDataUrl(pixels: string[]): string {
+  const scale = 4;
+  const canvas = document.createElement('canvas');
+  canvas.width = CUSTOM_GRID * scale;
+  canvas.height = CUSTOM_GRID * scale;
+  const ctx = canvas.getContext('2d')!;
+  ctx.beginPath();
+  ctx.arc(CUSTOM_BALL_CX * scale, CUSTOM_BALL_CY * scale, CUSTOM_BALL_R * scale, 0, Math.PI * 2);
+  ctx.clip();
+  for (let row = 0; row < CUSTOM_GRID; row++) {
+    for (let col = 0; col < CUSTOM_GRID; col++) {
+      ctx.fillStyle = pixels[row * CUSTOM_GRID + col] || '#ffffff';
+      ctx.fillRect(col * scale, row * scale, scale, scale);
+    }
+  }
+  return canvas.toDataURL();
+}
+
+const _customImgs: Partial<Record<CustomSlot, HTMLImageElement>> = {};
+
+export function refreshCustomBallCache(): void {
+  for (const slot of ['custom1', 'custom2', 'custom3'] as const) {
+    const data = loadCustomBallData(slot);
+    if (data?.dataUrl) {
+      const img = new Image();
+      img.src = data.dataUrl;
+      _customImgs[slot] = img;
+    } else {
+      delete _customImgs[slot];
+    }
+  }
+}
 
 interface Props {
   currentSkin: BallSkin;
   onSelect: (skin: BallSkin) => void;
   onBack: () => void;
+  onCustomize?: (slot: CustomSlot) => void;
 }
 
 function pixelCircle(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string) {
@@ -292,10 +356,31 @@ export function drawBallSkin(ctx: CanvasRenderingContext2D, skin: BallSkin, cx: 
     case 'earth':      drawEarth(ctx, icx, icy, r); break;
     case 'spiky':      drawSpiky(ctx, icx, icy, r); break;
     case 'eyeball':    drawEyeball(ctx, icx, icy, r); break;
+    case 'custom1':
+    case 'custom2':
+    case 'custom3': {
+      const img = _customImgs[skin as CustomSlot];
+      if (img?.complete && img.naturalWidth > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(icx, icy, r, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(img, icx - r, icy - r, r * 2, r * 2);
+        ctx.restore();
+      } else {
+        pixelCircle(ctx, icx, icy, r, '#2a2250');
+        ctx.fillStyle = '#7766cc';
+        ctx.font = `bold ${Math.round(r * 1.3)}px 'Press Start 2P', monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('?', icx, icy + 1);
+      }
+      break;
+    }
   }
 }
 
-export default function BallSkinsScreen({ currentSkin, onSelect, onBack }: Props) {
+export default function BallSkinsScreen({ currentSkin, onSelect, onBack, onCustomize }: Props) {
   const bgCanvasRef = useRef<HTMLCanvasElement>(null);
   const ballCanvasRef = useRef<HTMLCanvasElement>(null);
   const bgRafRef = useRef<number>(0);
@@ -303,8 +388,22 @@ export default function BallSkinsScreen({ currentSkin, onSelect, onBack }: Props
   const [idx, setIdx] = useState(() => Math.max(0, SKINS.findIndex(s => s.id === currentSkin)));
   const [selectedSkin, setSelectedSkin] = useState(currentSkin);
   const idxRef = useRef(idx);
+  const [customData, setCustomData] = useState<Partial<Record<CustomSlot, CustomBallData | null>>>({
+    custom1: loadCustomBallData('custom1'),
+    custom2: loadCustomBallData('custom2'),
+    custom3: loadCustomBallData('custom3'),
+  });
 
   useEffect(() => { idxRef.current = idx; }, [idx]);
+
+  useEffect(() => {
+    refreshCustomBallCache();
+    setCustomData({
+      custom1: loadCustomBallData('custom1'),
+      custom2: loadCustomBallData('custom2'),
+      custom3: loadCustomBallData('custom3'),
+    });
+  }, []);
 
   useEffect(() => {
     const canvas = bgCanvasRef.current;
@@ -358,8 +457,14 @@ export default function BallSkinsScreen({ currentSkin, onSelect, onBack }: Props
 
   const skin = SKINS[idx];
   const isSelected = skin.id === selectedSkin;
+  const isCustomSlot = skin.id === 'custom1' || skin.id === 'custom2' || skin.id === 'custom3';
+  const isCustomized = isCustomSlot && !!customData[skin.id as CustomSlot];
+  const displayName = isCustomSlot && customData[skin.id as CustomSlot]?.name
+    ? customData[skin.id as CustomSlot]!.name
+    : skin.name;
 
   const handleSelect = () => {
+    if (isCustomSlot && !isCustomized) return;
     setSelectedSkin(skin.id);
     onSelect(skin.id);
   };
@@ -422,28 +527,53 @@ export default function BallSkinsScreen({ currentSkin, onSelect, onBack }: Props
         </div>
 
         <div style={{ fontSize: 10, color: '#ffffff', letterSpacing: 2, marginTop: 20 }}>
-          {skin.name}
+          {displayName}
         </div>
 
         <div style={{ fontSize: 8, color: '#555588', letterSpacing: 1, marginTop: 8 }}>
           {idx + 1} / {SKINS.length}
         </div>
 
+        {isCustomSlot && (
+          <button
+            onClick={() => onCustomize?.(skin.id as CustomSlot)}
+            style={{
+              marginTop: 14,
+              background: 'transparent',
+              color: '#ff88ff',
+              border: '3px solid #ff44ff88',
+              boxShadow: '4px 4px 0 rgba(0,0,0,0.4)',
+              fontFamily: "'Press Start 2P', monospace",
+              fontSize: 8, padding: '10px 22px', cursor: 'pointer',
+              letterSpacing: 1, minWidth: 150,
+            }}
+            onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+            onMouseUp={e => (e.currentTarget.style.transform = '')}
+            onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+            onTouchEnd={e => (e.currentTarget.style.transform = '')}
+          >
+            {isCustomized ? 'EDIT DESIGN' : 'CUSTOMIZE'}
+          </button>
+        )}
+
         <button
           onClick={handleSelect}
+          disabled={isCustomSlot && !isCustomized}
           style={{
-            marginTop: 16,
+            marginTop: isCustomSlot ? 8 : 16,
             background: isSelected ? '#ffd700' : 'transparent',
             color: isSelected ? '#1a1035' : '#ffd700',
             border: '3px solid #ffd700',
             boxShadow: isSelected ? '4px 4px 0 #8B6914' : '4px 4px 0 rgba(0,0,0,0.5)',
             fontFamily: "'Press Start 2P', monospace",
-            fontSize: 9, padding: '11px 28px', cursor: 'pointer',
+            fontSize: 9, padding: '11px 28px',
+            cursor: (isCustomSlot && !isCustomized) ? 'not-allowed' : 'pointer',
             letterSpacing: 1, minWidth: 150,
+            opacity: (isCustomSlot && !isCustomized) ? 0.35 : 1,
           }}
-          onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+          onMouseDown={e => { if (!(isCustomSlot && !isCustomized)) e.currentTarget.style.transform = 'translate(2px,2px)'; }}
           onMouseUp={e => (e.currentTarget.style.transform = '')}
-          onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+          onTouchStart={e => { if (!(isCustomSlot && !isCustomized)) e.currentTarget.style.transform = 'translate(2px,2px)'; }}
           onTouchEnd={e => (e.currentTarget.style.transform = '')}
         >
           {isSelected ? '✓ SELECTED' : 'SELECT'}
