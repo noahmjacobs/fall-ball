@@ -3,10 +3,11 @@ import React from 'react';
 interface Props {
   onSelect: (level: number) => void;
   onBack: () => void;
+  totalLevels?: number;
 }
 
-export default function LevelSelectScreen({ onSelect, onBack }: Props) {
-  const levels = Array.from({ length: 20 }, (_, i) => i + 1);
+export default function LevelSelectScreen({ onSelect, onBack, totalLevels = 9 }: Props) {
+  const levels = Array.from({ length: totalLevels }, (_, i) => i + 1);
 
   return (
     <div style={{

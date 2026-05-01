@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { drawBallSkin, type BallSkin } from './BallSkinsScreen';
+import type { LevelData } from '../types/level';
 
 const CW = 390;
 const BALL_R = 14;
@@ -38,9 +39,8 @@ function getLevelCfg(level: number): LevelCfg {
   if (level <= 4)  return { innerHalf: 50, rimThick, speed: 1.8, pattern: 'circle',    makesNeeded: 3 };
   if (level <= 5)  return { innerHalf: 50, rimThick, speed: 0,   pattern: 'still',     makesNeeded: 3 };
   if (level <= 6)  return { innerHalf: 50, rimThick, speed: 2.0, pattern: 'figure8',   makesNeeded: 3 };
-  if (level <= 9)  return { innerHalf: 44, rimThick, speed: 2.0, pattern: 'linear',    makesNeeded: 3 };
-  if (level <= 10) return { innerHalf: 24, rimThick, speed: 0,   pattern: 'still',     makesNeeded: 3 };
-  return { innerHalf: 24, rimThick, speed: 3.0, pattern: 'figure8', makesNeeded: 3 };
+  // Levels 10+ are loaded from JSON files — this fallback is never reached in normal play
+  return { innerHalf: 44, rimThick, speed: 2.0, pattern: 'linear', makesNeeded: 3 };
 }
 
 function setupHoops(level: number, shotIdx: number, ch: number, l1y2: number, l1y3: number): HoopInstance[] {
@@ -242,20 +242,47 @@ function setupObstacles(level: number, ch: number): Obstacle[] {
   return [];
 }
 
+function levelDataToHoops(ld: LevelData): HoopInstance[] {
+  return ld.hoops.map(th => ({
+    x: th.baseX, y: th.baseY, prevX: th.baseX, prevY: th.baseY,
+    baseX: th.baseX, baseY: th.baseY,
+    pattern: th.pattern as HoopPattern,
+    speed: th.speed, innerHalf: th.innerHalf, rimThick: th.rimThick,
+    scored: false, lockedOut: false,
+    ampX: th.ampX || undefined, ampY: th.ampY || undefined,
+    frameOffset: th.frameOffset || undefined,
+  }));
+}
+
+function levelDataToObstacles(ld: LevelData): Obstacle[] {
+  return ld.obstacles.map(o => ({
+    x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2,
+    color: o.type === 'trampoline' ? '#ffd700' : '#b0b0b0',
+    thick: o.thick, restitution: o.restitution, friction: o.friction,
+    type: o.type === 'trampoline' ? 'trampoline' as const : undefined,
+  }));
+}
+
 interface Props {
   onGameOver: (score: number, level: number) => void;
+  onGameWon?: (score: number, level: number) => void;
   personalBest: number;
   arcadeMode?: boolean;
   startLevel?: number;
   onExit?: () => void;
   ballSkin?: BallSkin;
+  testLevel?: LevelData;
+  campaignLevels?: LevelData[];
 }
 
-export default function GameScreen({ onGameOver, personalBest, arcadeMode = false, startLevel = 1, onExit, ballSkin = 'basketball' }: Props) {
+export default function GameScreen({ onGameOver, onGameWon, personalBest, arcadeMode = false, startLevel = 1, onExit, ballSkin = 'basketball', testLevel, campaignLevels = [] }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef({
     phase: 'aiming' as 'aiming' | 'dropping' | 'scored' | 'missed' | 'levelup',
     gameOverFired: false,
+    gameWonFired: false,
+    wonPending: false,
+    currentMakesNeeded: 3,
     ball: { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 },
     prevBall: { x: CW / 2, y: DROP_H / 2 + 15 },
     score: 0, level: 1, lives: 3, makesThisLevel: 0, frame: 0,
@@ -289,9 +316,27 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
     s.ball = { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 };
     s.prevBall = { x: CW / 2, y: DROP_H / 2 + 15 };
     s.frame = 20; // sin(0)=0 puts moving hoops at center; start mid-motion instead
-    s.hoops = setupHoops(startLevel, 0, h, s.level1Shot2Y, s.level1Shot3Y);
+    if (testLevel) {
+      s.hoops = levelDataToHoops(testLevel);
+      s.obstacles = levelDataToObstacles(testLevel);
+      s.currentMakesNeeded = testLevel.makesNeeded;
+    } else if (startLevel >= 10 && campaignLevels.length > 0) {
+      const idx = startLevel - 10;
+      if (idx < campaignLevels.length) {
+        const ld = campaignLevels[idx];
+        s.hoops = levelDataToHoops(ld);
+        s.obstacles = levelDataToObstacles(ld);
+        s.currentMakesNeeded = ld.makesNeeded;
+      } else {
+        s.hoops = [];
+        s.obstacles = [];
+        s.wonPending = true;
+      }
+    } else {
+      s.hoops = setupHoops(startLevel, 0, h, s.level1Shot2Y, s.level1Shot3Y);
+      s.obstacles = setupObstacles(startLevel, h);
+    }
     positionHoops(s.hoops, s.frame);
-    s.obstacles = setupObstacles(startLevel, h);
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     canvas.width = CW * dpr;
     canvas.height = h * dpr;
@@ -368,6 +413,7 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
       if (s.phaseTimer <= 0) {
         const wasLevelUp = s.phase === 'levelup';
         if (s.lives <= 0 && !arcadeMode) { if (!s.gameOverFired) { s.gameOverFired = true; onGameOver(s.score, s.level); } return; }
+        if (s.wonPending && !s.gameWonFired) { s.gameWonFired = true; onGameWon?.(s.score, s.level); return; }
         s.phase = 'aiming';
         s.ball = { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 };
         s.prevBall = { ...s.ball };
@@ -379,10 +425,22 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
         // - level just changed (wasLevelUp)
         // - level 1 or 5: each shot has a different hoop configuration
         // Otherwise just reset flags so the hoop keeps moving with no glitch
-        if (wasLevelUp || s.level === 1 || s.level === 5) {
-          s.hoops = setupHoops(s.level, s.makesThisLevel, ch, s.level1Shot2Y, s.level1Shot3Y);
-          positionHoops(s.hoops, s.frame);
-          s.obstacles = setupObstacles(s.level, ch);
+        if (testLevel) {
+          for (const hoop of s.hoops) { hoop.scored = false; hoop.lockedOut = false; }
+        } else if (wasLevelUp || s.level === 1 || s.level === 5) {
+          if (!testLevel && s.level >= 10) {
+            const idx = s.level - 10;
+            if (idx < campaignLevels.length) {
+              const ld = campaignLevels[idx];
+              s.hoops = levelDataToHoops(ld);
+              s.obstacles = levelDataToObstacles(ld);
+              positionHoops(s.hoops, s.frame);
+            }
+          } else {
+            s.hoops = setupHoops(s.level, s.makesThisLevel, ch, s.level1Shot2Y, s.level1Shot3Y);
+            positionHoops(s.hoops, s.frame);
+            s.obstacles = setupObstacles(s.level, ch);
+          }
         } else {
           for (const hoop of s.hoops) { hoop.scored = false; hoop.lockedOut = false; }
         }
@@ -442,7 +500,7 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
               s.makesThisLevel++;
               emitParticles(s.particles, hoop.x, hoop.y - 20, 24);
               s.phase = 'scored'; s.phaseTimer = 55;
-              if (s.makesThisLevel >= getLevelCfg(s.level).makesNeeded) {
+              if (s.makesThisLevel >= s.currentMakesNeeded) {
                 const bonus = s.level;
                 s.score += bonus;
                 s.levelBonus = bonus;
@@ -451,6 +509,17 @@ export default function GameScreen({ onGameOver, personalBest, arcadeMode = fals
                 s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
                 emitParticles(s.particles, CW / 2, ch / 2, 40);
                 playLevelUp();
+                // Campaign JSON levels: check if next level exists or trigger win
+                if (!arcadeMode && !testLevel && s.level >= 10) {
+                  const nextIdx = s.level - 10;
+                  if (nextIdx >= campaignLevels.length) {
+                    s.wonPending = true;
+                  } else {
+                    s.currentMakesNeeded = campaignLevels[nextIdx].makesNeeded;
+                  }
+                } else if (!arcadeMode && !testLevel && s.level < 10) {
+                  s.currentMakesNeeded = getLevelCfg(s.level).makesNeeded;
+                }
               }
               resolved = true;
               break;

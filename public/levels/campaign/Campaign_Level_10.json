@@ -1,0 +1,29 @@
+{
+  "name": "Campaign Level 10",
+  "makesNeeded": 3,
+  "hoops": [
+    {
+      "baseX": 167,
+      "baseY": 432,
+      "pattern": "linear",
+      "speed": 2,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0
+    }
+  ],
+  "obstacles": [
+    {
+      "x1": 80,
+      "y1": 221,
+      "x2": 237,
+      "y2": 222,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    }
+  ]
+}

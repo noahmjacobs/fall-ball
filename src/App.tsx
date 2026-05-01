@@ -4,11 +4,16 @@ import GameScreen from './components/GameScreen';
 import GameOverScreen from './components/GameOverScreen';
 import LeaderboardScreen from './components/LeaderboardScreen';
 import LevelSelectScreen from './components/LevelSelectScreen';
+import ModeSelectScreen from './components/ModeSelectScreen';
+import LevelCreatorScreen from './components/LevelCreatorScreen';
+import LevelEditorScreen from './components/LevelEditorScreen';
 import BallSkinsScreen, { type BallSkin } from './components/BallSkinsScreen';
 import NameEntryModal from './components/NameEntryModal';
 import { submitScore } from './firebase';
+import type { LevelData } from './types/level';
+import { loadCampaignLevels } from './levelLoader';
 
-type Screen = 'start' | 'game' | 'gameover' | 'leaderboard' | 'levelselect' | 'skins';
+type Screen = 'start' | 'modeselect' | 'game' | 'gameover' | 'leaderboard' | 'levelselect' | 'skins' | 'levelcreator' | 'leveleditor';
 
 interface GameResult { score: number; level: number; }
 
@@ -21,6 +26,10 @@ export default function App() {
   const [arcadeMode, setArcadeMode] = useState(false);
   const [arcadeStartLevel, setArcadeStartLevel] = useState(1);
   const [ballSkin, setBallSkin] = useState<BallSkin>('basketball');
+  const [testLevelData, setTestLevelData] = useState<LevelData | null>(null);
+  const [editorDraft, setEditorDraft] = useState<LevelData | null>(null);
+  const [campaignLevels, setCampaignLevels] = useState<LevelData[]>([]);
+  const [gameWon, setGameWon] = useState(false);
 
   useEffect(() => {
     const savedName = localStorage.getItem('fallball_name') || '';
@@ -29,6 +38,7 @@ export default function App() {
     setPlayerName(savedName);
     setPersonalBest(savedBest);
     setBallSkin(savedSkin);
+    loadCampaignLevels().then(levels => setCampaignLevels(levels));
   }, []);
 
   const handleSkinSelect = useCallback((skin: BallSkin) => {
@@ -37,6 +47,10 @@ export default function App() {
   }, []);
 
   const handlePlay = useCallback(() => {
+    setScreen('modeselect');
+  }, []);
+
+  const handleCampaign = useCallback(() => {
     if (!playerName) {
       setShowNameEntry(true);
     } else {
@@ -55,10 +69,25 @@ export default function App() {
     setPlayerName(name);
     localStorage.setItem('fallball_name', name);
     setShowNameEntry(false);
+    setArcadeMode(false);
     setScreen('game');
   }, []);
 
   const handleGameOver = useCallback(async (score: number, level: number) => {
+    setGameWon(false);
+    setLastResult({ score, level });
+    if (score > personalBest) {
+      setPersonalBest(score);
+      localStorage.setItem('fallball_best', score.toString());
+    }
+    if (playerName) {
+      try { await submitScore(playerName, score, level); } catch (_) {}
+    }
+    setScreen('gameover');
+  }, [playerName, personalBest]);
+
+  const handleGameWon = useCallback(async (score: number, level: number) => {
+    setGameWon(true);
     setLastResult({ score, level });
     if (score > personalBest) {
       setPersonalBest(score);
@@ -79,22 +108,50 @@ export default function App() {
       {showNameEntry && <NameEntryModal onSubmit={handleNameSubmit} />}
 
       {screen === 'start' && (
-        <StartScreen onPlay={handlePlay} onLeaderboard={() => setScreen('leaderboard')} onArcade={() => setScreen('levelselect')} onSkins={() => setScreen('skins')} ballSkin={ballSkin} />
+        <StartScreen onPlay={handlePlay} onLeaderboard={() => setScreen('leaderboard')} onSkins={() => setScreen('skins')} ballSkin={ballSkin} />
+      )}
+      {screen === 'modeselect' && (
+        <ModeSelectScreen
+          onCampaign={handleCampaign}
+          onArcade={() => setScreen('levelselect')}
+          onLevelCreator={() => setScreen('levelcreator')}
+          onBack={() => setScreen('start')}
+        />
+      )}
+      {screen === 'levelcreator' && (
+        <LevelCreatorScreen
+          onAdminAccess={() => setScreen('leveleditor')}
+          onBack={() => setScreen('modeselect')}
+        />
+      )}
+      {screen === 'leveleditor' && (
+        <LevelEditorScreen
+          onBack={() => setScreen('levelcreator')}
+          onTest={(data) => { setEditorDraft(data); setTestLevelData(data); setScreen('game'); }}
+          initialData={editorDraft ?? undefined}
+        />
       )}
       {screen === 'skins' && (
         <BallSkinsScreen currentSkin={ballSkin} onSelect={handleSkinSelect} onBack={() => setScreen('start')} />
       )}
       {screen === 'levelselect' && (
-        <LevelSelectScreen onSelect={handleArcadeSelect} onBack={() => setScreen('start')} />
+        <LevelSelectScreen onSelect={handleArcadeSelect} onBack={() => setScreen('modeselect')} totalLevels={9 + campaignLevels.length} />
       )}
       {screen === 'game' && (
         <GameScreen
           onGameOver={handleGameOver}
+          onGameWon={handleGameWon}
           personalBest={personalBest}
-          arcadeMode={arcadeMode}
+          arcadeMode={testLevelData ? true : arcadeMode}
           startLevel={arcadeMode ? arcadeStartLevel : 1}
-          onExit={() => setScreen(arcadeMode ? 'levelselect' : 'start')}
+          onExit={() => {
+            const dest = testLevelData ? 'leveleditor' : arcadeMode ? 'levelselect' : 'modeselect';
+            setTestLevelData(null);
+            setScreen(dest);
+          }}
           ballSkin={ballSkin}
+          testLevel={testLevelData ?? undefined}
+          campaignLevels={campaignLevels}
         />
       )}
       {screen === 'gameover' && lastResult && (
@@ -103,9 +160,10 @@ export default function App() {
           level={lastResult.level}
           personalBest={personalBest}
           playerName={playerName}
-          onTryAgain={() => setScreen('game')}
+          didWin={gameWon}
+          onTryAgain={() => { setGameWon(false); setScreen('game'); }}
           onLeaderboard={() => setScreen('leaderboard')}
-          onHome={() => setScreen('start')}
+          onHome={() => { setGameWon(false); setScreen('start'); }}
         />
       )}
       {screen === 'leaderboard' && (

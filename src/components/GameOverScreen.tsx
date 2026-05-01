@@ -8,6 +8,7 @@ interface Props {
   onTryAgain: () => void;
   onLeaderboard: () => void;
   onHome: () => void;
+  didWin?: boolean;
 }
 
 export default function GameOverScreen({
@@ -18,6 +19,7 @@ export default function GameOverScreen({
   onTryAgain,
   onLeaderboard,
   onHome,
+  didWin = false,
 }: Props) {
   const isNewBest = score >= personalBest && score > 0;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -115,16 +117,24 @@ export default function GameOverScreen({
           maxWidth: 370,
         }}
       >
-        <div style={{ textAlign: 'center', lineHeight: 1.5 }}>
-          <div style={{ fontSize: 26, color: '#e83232', textShadow: '3px 3px 0 #7a0000, 6px 6px 0 rgba(0,0,0,0.4)', letterSpacing: 2 }}>GAME</div>
-          <div style={{ fontSize: 26, color: '#e83232', textShadow: '3px 3px 0 #7a0000, 6px 6px 0 rgba(0,0,0,0.4)', letterSpacing: 2 }}>OVER</div>
-        </div>
+        {didWin ? (
+          <div style={{ textAlign: 'center', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 26, color: '#ffd700', textShadow: '3px 3px 0 #8B6914, 6px 6px 0 rgba(0,0,0,0.4)', letterSpacing: 2 }}>YOU</div>
+            <div style={{ fontSize: 26, color: '#ffd700', textShadow: '3px 3px 0 #8B6914, 6px 6px 0 rgba(0,0,0,0.4)', letterSpacing: 2 }}>WIN!</div>
+            <div style={{ fontSize: 7, color: '#aaaaff', marginTop: 10, letterSpacing: 1 }}>MORE LEVELS COMING SOON</div>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 26, color: '#e83232', textShadow: '3px 3px 0 #7a0000, 6px 6px 0 rgba(0,0,0,0.4)', letterSpacing: 2 }}>GAME</div>
+            <div style={{ fontSize: 26, color: '#e83232', textShadow: '3px 3px 0 #7a0000, 6px 6px 0 rgba(0,0,0,0.4)', letterSpacing: 2 }}>OVER</div>
+          </div>
+        )}
 
         {playerName && (
           <div style={{ fontSize: 9, color: '#aaaaff', letterSpacing: 2 }}>by {playerName}</div>
         )}
 
-        <div style={{ width: '100%', height: '3px', background: 'repeating-linear-gradient(90deg, #e83232 0px, #e83232 8px, transparent 8px, transparent 12px)' }} />
+        <div style={{ width: '100%', height: '3px', background: didWin ? 'repeating-linear-gradient(90deg, #ffd700 0px, #ffd700 8px, transparent 8px, transparent 12px)' : 'repeating-linear-gradient(90deg, #e83232 0px, #e83232 8px, transparent 8px, transparent 12px)' }} />
 
         <div style={{ ...pixelBox('#ffd700'), width: '100%', textAlign: 'center' }}>
           <div style={{ fontSize: 8, color: '#888', marginBottom: 10, letterSpacing: 2 }}>FINAL SCORE</div>
@@ -157,7 +167,7 @@ export default function GameOverScreen({
             onTouchStart={e => (e.currentTarget.style.transform = 'translate(3px,3px)')}
             onTouchEnd={e => (e.currentTarget.style.transform = '')}
           >
-            TRY AGAIN
+            {didWin ? 'PLAY AGAIN' : 'TRY AGAIN'}
           </button>
 
           <button
