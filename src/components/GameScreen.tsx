@@ -880,7 +880,7 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
   return (
     <canvas
       ref={canvasRef}
-      style={{ display: 'block', width: '100%', height: 'calc(100dvh - env(safe-area-inset-top, 0px))', imageRendering: 'pixelated', touchAction: 'none' }}
+      style={{ display: 'block', width: '100%', height: 'calc(100dvh - env(safe-area-inset-top, 0px))', marginTop: 'env(safe-area-inset-top, 0px)', imageRendering: 'pixelated', touchAction: 'none' }}
       onTouchStart={onDown}
       onTouchMove={onMove}
       onTouchEnd={onUp}
