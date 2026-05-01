@@ -23,6 +23,7 @@ function makeHoop(x: number, y: number): EditorHoop {
     pattern: 'linear', speed: 2.0,
     innerHalf: 44, rimThick: 10,
     ampX: 120, ampY: 60, frameOffset: 0,
+    rotation: 0,
   };
 }
 
@@ -39,50 +40,57 @@ function makeObstacle(x1: number, y1: number, x2: number, y2: number, type: 'met
 }
 
 // Draw hoop exactly like the game
-function drawHoop(ctx: CanvasRenderingContext2D, hx: number, hy: number, innerHalf: number, rimThick: number, selected: boolean) {
+function drawHoop(ctx: CanvasRenderingContext2D, hx: number, hy: number, innerHalf: number, rimThick: number, selected: boolean, rotationDeg = 0) {
   const outerHalf = innerHalf + rimThick;
+  const rot = rotationDeg * Math.PI / 180;
+
+  ctx.save();
+  ctx.translate(hx, hy);
+  if (rot) ctx.rotate(rot);
 
   if (selected) {
     ctx.strokeStyle = '#ffd700';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 3]);
-    ctx.strokeRect(hx - outerHalf - 8, hy - 36, (outerHalf + 8) * 2, 88);
+    ctx.strokeRect(-outerHalf - 8, -36, (outerHalf + 8) * 2, 88);
     ctx.setLineDash([]);
   }
 
   // Net
-  const netTop = hy + RIM_H / 2, netBot = netTop + 42;
+  const netTop = RIM_H / 2, netBot = netTop + 42;
   ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5;
   for (let i = 0; i <= 9; i++) {
     const t = i / 9;
-    const topX = hx - innerHalf + t * innerHalf * 2;
-    const botX = hx - innerHalf * 0.65 + t * innerHalf * 1.3;
+    const topX = -innerHalf + t * innerHalf * 2;
+    const botX = -innerHalf * 0.65 + t * innerHalf * 1.3;
     ctx.beginPath(); ctx.moveTo(topX, netTop); ctx.lineTo(botX, netBot); ctx.stroke();
   }
   [0.3, 0.6, 1.0].forEach(frac => {
     const ny = netTop + (netBot - netTop) * frac;
     const shrink = 0.35 * frac;
     ctx.beginPath();
-    ctx.moveTo(hx - innerHalf * (1 - shrink), ny);
-    ctx.lineTo(hx + innerHalf * (1 - shrink), ny);
+    ctx.moveTo(-innerHalf * (1 - shrink), ny);
+    ctx.lineTo(innerHalf * (1 - shrink), ny);
     ctx.stroke();
   });
 
   // Opening line
   ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(hx - innerHalf, hy); ctx.lineTo(hx + innerHalf, hy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-innerHalf, 0); ctx.lineTo(innerHalf, 0); ctx.stroke();
 
   // Left rim
   ctx.fillStyle = '#e83232';
-  ctx.fillRect(hx - outerHalf, hy - RIM_H / 2, rimThick, RIM_H);
+  ctx.fillRect(-outerHalf, -RIM_H / 2, rimThick, RIM_H);
   ctx.fillStyle = '#ff6666';
-  ctx.fillRect(hx - outerHalf, hy - RIM_H / 2, rimThick, 3);
+  ctx.fillRect(-outerHalf, -RIM_H / 2, rimThick, 3);
 
   // Right rim
   ctx.fillStyle = '#e83232';
-  ctx.fillRect(hx + innerHalf, hy - RIM_H / 2, rimThick, RIM_H);
+  ctx.fillRect(innerHalf, -RIM_H / 2, rimThick, RIM_H);
   ctx.fillStyle = '#ff6666';
-  ctx.fillRect(hx + innerHalf, hy - RIM_H / 2, rimThick, 3);
+  ctx.fillRect(innerHalf, -RIM_H / 2, rimThick, 3);
+
+  ctx.restore();
 }
 
 export default function LevelEditorScreen({ onBack, onTest, initialData }: Props) {
@@ -267,11 +275,12 @@ export default function LevelEditorScreen({ onBack, onTest, initialData }: Props
 
       // Hoops
       for (const hoop of h) {
-        drawHoop(ctx, hoop.baseX, hoop.baseY, hoop.innerHalf, hoop.rimThick, hoop.id === sel);
+        drawHoop(ctx, hoop.baseX, hoop.baseY, hoop.innerHalf, hoop.rimThick, hoop.id === sel, hoop.rotation ?? 0);
         ctx.fillStyle = hoop.id === sel ? '#ffd700' : '#8888bb';
         ctx.font = "7px 'Press Start 2P', monospace";
         ctx.textAlign = 'center';
-        ctx.fillText(hoop.pattern.toUpperCase(), hoop.baseX, hoop.baseY - 24);
+        const labelY = hoop.baseY - (hoop.innerHalf + hoop.rimThick + 14);
+        ctx.fillText(hoop.pattern.toUpperCase(), hoop.baseX, labelY);
       }
 
       // Drawing preview
@@ -334,7 +343,7 @@ export default function LevelEditorScreen({ onBack, onTest, initialData }: Props
   const showAmpY = selHoop && ['linear_v', 'circle', 'figure8', 'rectangle'].includes(selHoop.pattern);
   const hasContent = hoops.length > 0 || obstacles.length > 0;
 
-  const drawerH = drawerOpen ? (selHoop || selObs ? 310 : 160) : 48;
+  const drawerH = drawerOpen ? (selHoop || selObs ? 340 : 160) : 48;
 
   return (
     <div style={{
@@ -531,6 +540,12 @@ export default function LevelEditorScreen({ onBack, onTest, initialData }: Props
                     <PropLabel>SIZE: {selHoop.innerHalf * 2}px</PropLabel>
                     <input type="range" min={20} max={80} step={2} value={selHoop.innerHalf}
                       onChange={e => updateHoop({ innerHalf: +e.target.value })} style={slider} />
+                  </div>
+
+                  <div>
+                    <PropLabel>TILT: {selHoop.rotation ?? 0}°</PropLabel>
+                    <input type="range" min={0} max={359} step={1} value={selHoop.rotation ?? 0}
+                      onChange={e => updateHoop({ rotation: +e.target.value })} style={slider} />
                   </div>
 
                   {showAmpX && (

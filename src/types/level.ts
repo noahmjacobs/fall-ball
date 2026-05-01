@@ -11,6 +11,7 @@ export interface EditorHoop {
   ampX: number;
   ampY: number;
   frameOffset: number;
+  rotation?: number; // degrees (0 = horizontal, 90 = vertical, 180 = upside-down)
 }
 
 export interface EditorObstacle {

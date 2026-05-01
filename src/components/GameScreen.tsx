@@ -21,6 +21,7 @@ interface HoopInstance {
   scored: boolean; lockedOut: boolean;
   ampX?: number; ampY?: number;
   frameOffset?: number;
+  rotation?: number; // radians
 }
 
 interface LevelCfg {
@@ -173,37 +174,42 @@ function pixelCircle(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: n
   }
 }
 
-function drawHoop(ctx: CanvasRenderingContext2D, hoopX: number, hoopY: number, innerHalf: number, rimThick: number) {
+function drawHoop(ctx: CanvasRenderingContext2D, hoopX: number, hoopY: number, innerHalf: number, rimThick: number, rotation = 0) {
   const outerHalf = innerHalf + rimThick;
-  const ry = Math.round(hoopY), hx = Math.round(hoopX);
+  ctx.save();
+  ctx.translate(Math.round(hoopX), Math.round(hoopY));
+  if (rotation) ctx.rotate(rotation);
+  // Opening line
   ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(hx - innerHalf, ry); ctx.lineTo(hx + innerHalf, ry); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-innerHalf, 0); ctx.lineTo(innerHalf, 0); ctx.stroke();
+  // Left rim
   ctx.fillStyle = '#e83232';
-  ctx.fillRect(hx - outerHalf, ry - RIM_H / 2, rimThick, RIM_H);
+  ctx.fillRect(-outerHalf, -RIM_H / 2, rimThick, RIM_H);
   ctx.fillStyle = '#ff6666';
-  ctx.fillRect(hx - outerHalf, ry - RIM_H / 2, rimThick, 3);
+  ctx.fillRect(-outerHalf, -RIM_H / 2, rimThick, 3);
+  // Right rim
   ctx.fillStyle = '#e83232';
-  ctx.fillRect(hx + innerHalf, ry - RIM_H / 2, rimThick, RIM_H);
+  ctx.fillRect(innerHalf, -RIM_H / 2, rimThick, RIM_H);
   ctx.fillStyle = '#ff6666';
-  ctx.fillRect(hx + innerHalf, ry - RIM_H / 2, rimThick, 3);
-  const netTop = ry + RIM_H / 2;
+  ctx.fillRect(innerHalf, -RIM_H / 2, rimThick, 3);
+  // Net
+  const netTop = RIM_H / 2;
   const netBot = netTop + 42;
   const netLines = 9;
   ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5;
   for (let i = 0; i <= netLines; i++) {
     const t = i / netLines;
-    const topX = hx - innerHalf + t * innerHalf * 2;
+    const topX = -innerHalf + t * innerHalf * 2;
     const shrink = 0.35;
-    const botX = hx - innerHalf * (1 - shrink) + t * innerHalf * 2 * (1 - shrink);
+    const botX = -innerHalf * (1 - shrink) + t * innerHalf * 2 * (1 - shrink);
     ctx.beginPath(); ctx.moveTo(topX, netTop); ctx.lineTo(botX, netBot); ctx.stroke();
   }
   [0.3, 0.6, 1.0].forEach(frac => {
     const ny = netTop + (netBot - netTop) * frac;
     const shrink = 0.35 * frac;
-    const lx = hx - innerHalf * (1 - shrink);
-    const rx = hx + innerHalf * (1 - shrink);
-    ctx.beginPath(); ctx.moveTo(lx, ny); ctx.lineTo(rx, ny); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-innerHalf * (1 - shrink), ny); ctx.lineTo(innerHalf * (1 - shrink), ny); ctx.stroke();
   });
+  ctx.restore();
 }
 
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; sz: number; }
@@ -251,6 +257,7 @@ function levelDataToHoops(ld: LevelData): HoopInstance[] {
     scored: false, lockedOut: false,
     ampX: th.ampX || undefined, ampY: th.ampY || undefined,
     frameOffset: th.frameOffset || undefined,
+    rotation: th.rotation ? th.rotation * Math.PI / 180 : 0,
   }));
 }
 
@@ -469,27 +476,38 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
       // sub>0 uses standard CCD (hoop.y is constant within a frame)
       for (const hoop of s.hoops) {
         if (hoop.scored) continue;
-        let crossed = false, t = 0, hoopXAtT = hoop.x;
+        const θ = hoop.rotation ?? 0;
+        // Normal to hoop face (points "up" through opening when θ=0)
+        const nθx = -Math.sin(θ), nθy = Math.cos(θ);
+        // Tangent along hoop bar
+        const tθx = Math.cos(θ), tθy = Math.sin(θ);
+        let crossed = false, t = 0, hoopXAtT = hoop.x, hoopYAtT = hoop.y;
         if (sub === 0) {
-          const relPrev = subPrevBallY - hoop.prevY;
-          const relCurr = s.ball.y - hoop.y;
+          const relPrev = (subPrevBallX - hoop.prevX) * nθx + (subPrevBallY - hoop.prevY) * nθy;
+          const relCurr = (s.ball.x - hoop.x) * nθx + (s.ball.y - hoop.y) * nθy;
           if ((relPrev < 0 && relCurr >= 0) || (relPrev > 0 && relCurr <= 0)) {
             crossed = true;
             if (Math.abs(relCurr - relPrev) > 0.001) t = -relPrev / (relCurr - relPrev);
             hoopXAtT = hoop.prevX + t * (hoop.x - hoop.prevX);
+            hoopYAtT = hoop.prevY + t * (hoop.y - hoop.prevY);
           }
         } else {
-          if ((subPrevBallY < hoop.y && s.ball.y >= hoop.y) || (subPrevBallY > hoop.y && s.ball.y <= hoop.y)) {
+          const relPrev = (subPrevBallX - hoop.x) * nθx + (subPrevBallY - hoop.y) * nθy;
+          const relCurr = (s.ball.x - hoop.x) * nθx + (s.ball.y - hoop.y) * nθy;
+          if ((relPrev < 0 && relCurr >= 0) || (relPrev > 0 && relCurr <= 0)) {
             crossed = true;
-            if (Math.abs(s.ball.y - subPrevBallY) > 0.001) t = (hoop.y - subPrevBallY) / (s.ball.y - subPrevBallY);
+            if (Math.abs(relCurr - relPrev) > 0.001) t = -relPrev / (relCurr - relPrev);
             hoopXAtT = hoop.x;
+            hoopYAtT = hoop.y;
           }
         }
         if (crossed) {
           const xAtCross = subPrevBallX + t * (s.ball.x - subPrevBallX);
-          const openLeft  = hoopXAtT - hoop.innerHalf + BALL_R * 0.5;
-          const openRight = hoopXAtT + hoop.innerHalf - BALL_R * 0.5;
-          if (xAtCross > openLeft && xAtCross < openRight) {
+          const yAtCross = subPrevBallY + t * (s.ball.y - subPrevBallY);
+          // Position along hoop tangent (works for any rotation angle)
+          const alongHoop = (xAtCross - hoopXAtT) * tθx + (yAtCross - hoopYAtT) * tθy;
+          const openHalf = hoop.innerHalf - BALL_R * 0.5;
+          if (Math.abs(alongHoop) < openHalf) {
             hoop.scored = true;
             s.score++;
             s.plusOneX = hoop.x;
@@ -525,7 +543,7 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
               break;
             }
           } else {
-            const dist = xAtCross < openLeft ? openLeft - xAtCross : xAtCross - openRight;
+            const dist = Math.abs(alongHoop) - openHalf;
             if (dist < 22) s.nearMiss = true;
           }
         }
@@ -535,9 +553,12 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
       // Rim collision for all hoops
       for (const hoop of s.hoops) {
         const RIM_R = hoop.rimThick / 2;
+        const θr = hoop.rotation ?? 0;
+        const cθ = Math.cos(θr), sθ = Math.sin(θr);
+        const rimOffset = hoop.innerHalf + hoop.rimThick / 2;
         const rimCircles = [
-          { x: hoop.x - hoop.innerHalf - hoop.rimThick / 2, y: hoop.y },
-          { x: hoop.x + hoop.innerHalf + hoop.rimThick / 2, y: hoop.y },
+          { x: hoop.x - rimOffset * cθ, y: hoop.y - rimOffset * sθ },
+          { x: hoop.x + rimOffset * cθ, y: hoop.y + rimOffset * sθ },
         ];
         for (const rim of rimCircles) {
           const dx = s.ball.x - rim.x, dy = s.ball.y - rim.y;
@@ -711,7 +732,7 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
       }
     }
     if (s.ball.y < ch + BALL_R * 3) drawBallSkin(ctx, ballSkin, s.ball.x, s.ball.y, BALL_R);
-    for (const hoop of s.hoops) drawHoop(ctx, hoop.x, hoop.y, hoop.innerHalf, hoop.rimThick);
+    for (const hoop of s.hoops) drawHoop(ctx, hoop.x, hoop.y, hoop.innerHalf, hoop.rimThick, hoop.rotation ?? 0);
     if (s.plusOneAlpha > 0.01) {
       ctx.globalAlpha = s.plusOneAlpha;
       ctx.fillStyle = '#ffd700';
