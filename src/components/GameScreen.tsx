@@ -1,5 +1,14 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { drawBallSkin, type BallSkin } from './BallSkinsScreen';
+import { drawBallSkin, type BallSkin, type BallTrail } from './BallSkinsScreen';
+
+const TRAIL_COLORS: Record<BallTrail, string> = {
+  white:  '#ddeeff',
+  blue:   '#55ccff',
+  red:    '#ff6622',
+  gold:   '#ffd700',
+  purple: '#cc55ff',
+  green:  '#44ff88',
+};
 import type { LevelData } from '../types/level';
 
 const CW = 390;
@@ -278,11 +287,12 @@ interface Props {
   startLevel?: number;
   onExit?: () => void;
   ballSkin?: BallSkin;
+  ballTrail?: BallTrail;
   testLevel?: LevelData;
   campaignLevels?: LevelData[];
 }
 
-export default function GameScreen({ onGameOver, onGameWon, personalBest, arcadeMode = false, startLevel = 1, onExit, ballSkin = 'basketball', testLevel, campaignLevels = [] }: Props) {
+export default function GameScreen({ onGameOver, onGameWon, personalBest, arcadeMode = false, startLevel = 1, onExit, ballSkin = 'basketball', ballTrail = 'white', testLevel, campaignLevels = [] }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef({
     phase: 'aiming' as 'aiming' | 'dropping' | 'scored' | 'missed' | 'levelup',
@@ -309,6 +319,7 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
   });
   const rafRef = useRef(0);
   const canvasHeight = useRef(0);
+  const trailHistoryRef = useRef<{ x: number; y: number }[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -431,6 +442,7 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
         s.phase = 'aiming';
         s.ball = { x: CW / 2, y: DROP_H / 2 + 15, vx: 0, vy: 0 };
         s.prevBall = { ...s.ball };
+        trailHistoryRef.current = [];
         s.rimHitThisShot = false;
         s.nearMiss = false;
         s.missType = 'none';
@@ -655,6 +667,10 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
       }
     }
     s.prevBall = { x: s.ball.x, y: s.ball.y };
+
+    // Trail history — speed threshold in render hides it during aiming
+    trailHistoryRef.current.push({ x: s.ball.x, y: s.ball.y });
+    if (trailHistoryRef.current.length > 10) trailHistoryRef.current.shift();
   }
 
   function render(ctx: CanvasRenderingContext2D) {
@@ -740,6 +756,29 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
           ctx.font = '7px "Press Start 2P"';
           ctx.textAlign = 'center';
           ctx.fillText(obs.label, mx, my - 8);
+        }
+      }
+    }
+    // Comet trail
+    if (s.ball.y < ch + BALL_R * 3) {
+      const trail = trailHistoryRef.current;
+      if (trail.length > 1) {
+        const speed = Math.sqrt(s.ball.vx * s.ball.vx + s.ball.vy * s.ball.vy);
+        const speedFactor = Math.min(1, Math.max(0, (speed - 1.5) / 9));
+        if (speedFactor > 0) {
+          const tc = TRAIL_COLORS[ballTrail] ?? '#ddeeff';
+          for (let i = 0; i < trail.length; i++) {
+            const age = i / (trail.length - 1); // 0=oldest, 1=newest (nearest ball)
+            const alpha = age * speedFactor * 0.45;
+            const r = BALL_R * 0.9 * age;
+            if (alpha < 0.02 || r < 0.5) continue;
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = tc;
+            ctx.beginPath();
+            ctx.arc(trail[i].x, trail[i].y, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
         }
       }
     }

@@ -5,6 +5,16 @@ export type BallSkin =
   | 'eightball' | 'earth' | 'spiky' | 'eyeball'
   | 'custom1' | 'custom2' | 'custom3';
 
+export type BallTrail = 'white' | 'blue' | 'red' | 'gold' | 'purple' | 'green';
+export const TRAILS: { id: BallTrail; name: string; color: string }[] = [
+  { id: 'white',  name: 'CLASSIC', color: '#ddeeff' },
+  { id: 'blue',   name: 'ICE',     color: '#55ccff' },
+  { id: 'red',    name: 'FIRE',    color: '#ff6622' },
+  { id: 'gold',   name: 'GOLD',    color: '#ffd700' },
+  { id: 'purple', name: 'PLASMA',  color: '#cc55ff' },
+  { id: 'green',  name: 'TOXIC',   color: '#44ff88' },
+];
+
 export type CustomSlot = 'custom1' | 'custom2' | 'custom3';
 
 export const SKINS: { id: BallSkin; name: string }[] = [
@@ -60,6 +70,7 @@ export function renderPixelsToDataUrl(pixels: string[]): string {
   ctx.clip();
   for (let row = 0; row < CUSTOM_GRID; row++) {
     for (let col = 0; col < CUSTOM_GRID; col++) {
+      if (!isCustomBallPixel(col, row)) continue;
       ctx.fillStyle = pixels[row * CUSTOM_GRID + col] || '#ffffff';
       ctx.fillRect(col * scale, row * scale, scale, scale);
     }
@@ -87,6 +98,8 @@ interface Props {
   onSelect: (skin: BallSkin) => void;
   onBack: () => void;
   onCustomize?: (slot: CustomSlot) => void;
+  currentTrail?: BallTrail;
+  onTrailSelect?: (trail: BallTrail) => void;
 }
 
 function pixelCircle(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string) {
@@ -380,7 +393,7 @@ export function drawBallSkin(ctx: CanvasRenderingContext2D, skin: BallSkin, cx: 
   }
 }
 
-export default function BallSkinsScreen({ currentSkin, onSelect, onBack, onCustomize }: Props) {
+export default function BallSkinsScreen({ currentSkin, onSelect, onBack, onCustomize, currentTrail, onTrailSelect }: Props) {
   const bgCanvasRef = useRef<HTMLCanvasElement>(null);
   const ballCanvasRef = useRef<HTMLCanvasElement>(null);
   const bgRafRef = useRef<number>(0);
@@ -388,6 +401,8 @@ export default function BallSkinsScreen({ currentSkin, onSelect, onBack, onCusto
   const [idx, setIdx] = useState(() => Math.max(0, SKINS.findIndex(s => s.id === currentSkin)));
   const [selectedSkin, setSelectedSkin] = useState(currentSkin);
   const idxRef = useRef(idx);
+  const [trailIdx, setTrailIdx] = useState(() => Math.max(0, TRAILS.findIndex(t => t.id === currentTrail)));
+  const trailIdxRef = useRef(trailIdx);
   const [customData, setCustomData] = useState<Partial<Record<CustomSlot, CustomBallData | null>>>({
     custom1: loadCustomBallData('custom1'),
     custom2: loadCustomBallData('custom2'),
@@ -395,6 +410,7 @@ export default function BallSkinsScreen({ currentSkin, onSelect, onBack, onCusto
   });
 
   useEffect(() => { idxRef.current = idx; }, [idx]);
+  useEffect(() => { trailIdxRef.current = trailIdx; }, [trailIdx]);
 
   useEffect(() => {
     refreshCustomBallCache();
@@ -440,15 +456,35 @@ export default function BallSkinsScreen({ currentSkin, onSelect, onBack, onCusto
     const canvas = ballCanvasRef.current;
     if (!canvas) return;
     const SIZE = 130;
-    canvas.width = SIZE; canvas.height = SIZE;
+    const CANVAS_H = 160;
+    canvas.width = SIZE; canvas.height = CANVAS_H;
     const ctx = canvas.getContext('2d')!;
     ctx.imageSmoothingEnabled = false;
     let frame = 0;
     function render() {
       frame++;
-      ctx.clearRect(0, 0, SIZE, SIZE);
+      ctx.clearRect(0, 0, SIZE, CANVAS_H);
       const bob = Math.round(Math.sin(frame * 0.04) * 5);
-      drawBallSkin(ctx, SKINS[idxRef.current].id, SIZE / 2, SIZE / 2 + bob, 40);
+      const bx = SIZE / 2, by = CANVAS_H - SIZE / 2 + bob;
+
+      // Comet trail preview — synthetic upward trail so it's always visible
+      const trail = TRAILS[trailIdxRef.current];
+      const numPts = 22;
+      for (let i = 0; i < numPts; i++) {
+        const age = i / (numPts - 1); // 0=oldest/farthest, 1=newest/closest to ball
+        const alpha = age * 0.72;
+        const r = 40 * 0.88 * age;
+        const ty = by - (numPts - 1 - i) * 4.2;
+        if (r < 0.5) continue;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = trail.color;
+        ctx.beginPath();
+        ctx.arc(bx, ty, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      drawBallSkin(ctx, SKINS[idxRef.current].id, bx, by, 40);
       ballRafRef.current = requestAnimationFrame(render);
     }
     ballRafRef.current = requestAnimationFrame(render);
@@ -505,62 +541,73 @@ export default function BallSkinsScreen({ currentSkin, onSelect, onBack, onCusto
         <div style={{ flex: 1 }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <button
-            style={arrowBtn}
-            onClick={() => setIdx(i => (i - 1 + SKINS.length) % SKINS.length)}
-            onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
-            onMouseUp={e => (e.currentTarget.style.transform = '')}
-            onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
-            onTouchEnd={e => (e.currentTarget.style.transform = '')}
-          >◄</button>
+          {/* Left column: trail arrow directly above ball arrow */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+            <button
+              style={{ ...arrowBtn, fontSize: 13, padding: '8px 12px', boxShadow: '2px 2px 0 #006666' }}
+              onClick={() => {
+                const next = (trailIdx - 1 + TRAILS.length) % TRAILS.length;
+                setTrailIdx(next); trailIdxRef.current = next;
+                onTrailSelect?.(TRAILS[next].id);
+              }}
+              onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+              onMouseUp={e => (e.currentTarget.style.transform = '')}
+              onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+              onTouchEnd={e => (e.currentTarget.style.transform = '')}
+            >◄</button>
+            <button
+              style={arrowBtn}
+              onClick={() => setIdx(i => (i - 1 + SKINS.length) % SKINS.length)}
+              onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+              onMouseUp={e => (e.currentTarget.style.transform = '')}
+              onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+              onTouchEnd={e => (e.currentTarget.style.transform = '')}
+            >◄</button>
+          </div>
 
           <canvas ref={ballCanvasRef} style={{ imageRendering: 'pixelated', display: 'block' }} />
 
-          <button
-            style={arrowBtn}
-            onClick={() => setIdx(i => (i + 1) % SKINS.length)}
-            onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
-            onMouseUp={e => (e.currentTarget.style.transform = '')}
-            onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
-            onTouchEnd={e => (e.currentTarget.style.transform = '')}
-          >►</button>
+          {/* Right column: trail arrow directly above ball arrow */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+            <button
+              style={{ ...arrowBtn, fontSize: 13, padding: '8px 12px', boxShadow: '2px 2px 0 #006666' }}
+              onClick={() => {
+                const next = (trailIdx + 1) % TRAILS.length;
+                setTrailIdx(next); trailIdxRef.current = next;
+                onTrailSelect?.(TRAILS[next].id);
+              }}
+              onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+              onMouseUp={e => (e.currentTarget.style.transform = '')}
+              onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+              onTouchEnd={e => (e.currentTarget.style.transform = '')}
+            >►</button>
+            <button
+              style={arrowBtn}
+              onClick={() => setIdx(i => (i + 1) % SKINS.length)}
+              onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+              onMouseUp={e => (e.currentTarget.style.transform = '')}
+              onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+              onTouchEnd={e => (e.currentTarget.style.transform = '')}
+            >►</button>
+          </div>
         </div>
 
-        <div style={{ fontSize: 10, color: '#ffffff', letterSpacing: 2, marginTop: 20 }}>
-          {displayName}
+        <div style={{ fontSize: 10, letterSpacing: 2, marginTop: 20, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <span style={{ color: TRAILS[trailIdx].color, textShadow: `0 0 8px ${TRAILS[trailIdx].color}88` }}>
+            {TRAILS[trailIdx].name}
+          </span>
+          <span style={{ color: '#ffffff' }}>{displayName}</span>
         </div>
 
         <div style={{ fontSize: 8, color: '#555588', letterSpacing: 1, marginTop: 8 }}>
           {idx + 1} / {SKINS.length}
         </div>
 
-        {isCustomSlot && (
-          <button
-            onClick={() => onCustomize?.(skin.id as CustomSlot)}
-            style={{
-              marginTop: 14,
-              background: 'transparent',
-              color: '#ff88ff',
-              border: '3px solid #ff44ff88',
-              boxShadow: '4px 4px 0 rgba(0,0,0,0.4)',
-              fontFamily: "'Press Start 2P', monospace",
-              fontSize: 8, padding: '10px 22px', cursor: 'pointer',
-              letterSpacing: 1, minWidth: 150,
-            }}
-            onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
-            onMouseUp={e => (e.currentTarget.style.transform = '')}
-            onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
-            onTouchEnd={e => (e.currentTarget.style.transform = '')}
-          >
-            {isCustomized ? 'EDIT DESIGN' : 'CUSTOMIZE'}
-          </button>
-        )}
-
         <button
           onClick={handleSelect}
           disabled={isCustomSlot && !isCustomized}
           style={{
-            marginTop: isCustomSlot ? 8 : 16,
+            marginTop: 16,
             background: isSelected ? '#ffd700' : 'transparent',
             color: isSelected ? '#1a1035' : '#ffd700',
             border: '3px solid #ffd700',
@@ -577,6 +624,29 @@ export default function BallSkinsScreen({ currentSkin, onSelect, onBack, onCusto
           onTouchEnd={e => (e.currentTarget.style.transform = '')}
         >
           {isSelected ? '✓ SELECTED' : 'SELECT'}
+        </button>
+
+        {/* Always reserve CUSTOMIZE button height so the ball never shifts position */}
+        <button
+          onClick={() => onCustomize?.(skin.id as CustomSlot)}
+          style={{
+            marginTop: 8,
+            visibility: isCustomSlot ? 'visible' : 'hidden',
+            pointerEvents: isCustomSlot ? 'auto' : 'none',
+            background: 'transparent',
+            color: '#ff88ff',
+            border: '3px solid #ff44ff88',
+            boxShadow: '4px 4px 0 rgba(0,0,0,0.4)',
+            fontFamily: "'Press Start 2P', monospace",
+            fontSize: 8, padding: '10px 22px', cursor: 'pointer',
+            letterSpacing: 1, minWidth: 150,
+          }}
+          onMouseDown={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+          onMouseUp={e => (e.currentTarget.style.transform = '')}
+          onTouchStart={e => (e.currentTarget.style.transform = 'translate(2px,2px)')}
+          onTouchEnd={e => (e.currentTarget.style.transform = '')}
+        >
+          {isCustomized ? 'EDIT DESIGN' : 'CUSTOMIZE'}
         </button>
 
         <div style={{ flex: 1 }} />

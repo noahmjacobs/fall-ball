@@ -10,7 +10,7 @@ import LevelEditorScreen from './components/LevelEditorScreen';
 import CommunityLevelsScreen from './components/CommunityLevelsScreen';
 import MyLevelsScreen from './components/MyLevelsScreen';
 import CommunityLevelCompleteScreen from './components/CommunityLevelCompleteScreen';
-import BallSkinsScreen, { type BallSkin, refreshCustomBallCache, type CustomSlot } from './components/BallSkinsScreen';
+import BallSkinsScreen, { type BallSkin, type BallTrail, refreshCustomBallCache, type CustomSlot } from './components/BallSkinsScreen';
 import CustomBallEditorScreen from './components/CustomBallEditorScreen';
 import NameEntryModal from './components/NameEntryModal';
 import { submitScore, saveUserLevel, recordLevelCompletion } from './firebase';
@@ -35,6 +35,7 @@ export default function App() {
   const [arcadeMode, setArcadeMode] = useState(false);
   const [arcadeStartLevel, setArcadeStartLevel] = useState(1);
   const [ballSkin, setBallSkin] = useState<BallSkin>('basketball');
+  const [ballTrail, setBallTrail] = useState<BallTrail>('white');
   const [testLevelData, setTestLevelData] = useState<LevelData | null>(null);
   const [editorDraft, setEditorDraft] = useState<LevelData | null>(null);
   const [campaignLevels, setCampaignLevels] = useState<LevelData[]>([]);
@@ -52,9 +53,11 @@ export default function App() {
     const savedName = localStorage.getItem('fallball_name') || '';
     const savedBest = parseInt(localStorage.getItem('fallball_best') || '0', 10);
     const savedSkin = (localStorage.getItem('fallball_skin') || 'basketball') as BallSkin;
+    const savedTrail = (localStorage.getItem('fallball_trail') || 'white') as BallTrail;
     setPlayerName(savedName);
     setPersonalBest(savedBest);
     setBallSkin(savedSkin);
+    setBallTrail(savedTrail);
     refreshCustomBallCache();
     loadCampaignLevels().then(levels => setCampaignLevels(levels));
   }, []);
@@ -62,6 +65,11 @@ export default function App() {
   const handleSkinSelect = useCallback((skin: BallSkin) => {
     setBallSkin(skin);
     localStorage.setItem('fallball_skin', skin);
+  }, []);
+
+  const handleTrailSelect = useCallback((trail: BallTrail) => {
+    setBallTrail(trail);
+    localStorage.setItem('fallball_trail', trail);
   }, []);
 
   const handleCustomize = useCallback((slot: CustomSlot) => {
@@ -275,7 +283,7 @@ export default function App() {
         />
       )}
       {screen === 'skins' && (
-        <BallSkinsScreen currentSkin={ballSkin} onSelect={handleSkinSelect} onBack={() => setScreen('start')} onCustomize={handleCustomize} />
+        <BallSkinsScreen currentSkin={ballSkin} onSelect={handleSkinSelect} onBack={() => setScreen('start')} onCustomize={handleCustomize} currentTrail={ballTrail} onTrailSelect={handleTrailSelect} />
       )}
       {screen === 'customballeditor' && (
         <CustomBallEditorScreen slot={customSlot} onBack={() => setScreen('skins')} onSaved={handleCustomBallSaved} />
@@ -296,6 +304,7 @@ export default function App() {
             setScreen(dest);
           }}
           ballSkin={ballSkin}
+          ballTrail={ballTrail}
           testLevel={testLevelData ?? undefined}
           campaignLevels={campaignLevels}
         />
