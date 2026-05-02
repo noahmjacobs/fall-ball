@@ -539,9 +539,8 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
               s.phase = 'scored'; s.phaseTimer = 55;
               if (s.makesThisLevel >= s.currentMakesNeeded) {
                 if (testLevel) {
-                  // Community/test level: complete immediately, no level-up animation
-                  s.wonPending = true;
-                  // phase stays 'scored', phaseTimer = 55 — onGameWon fires after brief pause
+                  // Test mode: loop infinitely, never win or submit score
+                  s.makesThisLevel = 0;
                 } else {
                   const bonus = s.level;
                   s.score += bonus;
