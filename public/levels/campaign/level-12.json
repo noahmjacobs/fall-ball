@@ -1,0 +1,69 @@
+{
+  "name": "LEVEL 12",
+  "makesNeeded": 1,
+  "hoops": [
+    {
+      "id": "e9",
+      "baseX": 192,
+      "baseY": 304,
+      "pattern": "rectangle",
+      "speed": 2,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 130,
+      "ampY": 150,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e10",
+      "baseX": 193,
+      "baseY": 295,
+      "pattern": "circle",
+      "speed": 1.5,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 85,
+      "ampY": 90,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e11",
+      "baseX": 194,
+      "baseY": 447,
+      "pattern": "still",
+      "speed": 2,
+      "innerHalf": 80,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e12",
+      "x1": 19,
+      "y1": 389,
+      "x2": 110,
+      "y2": 448,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    },
+    {
+      "id": "e13",
+      "x1": 380,
+      "y1": 390,
+      "x2": 276,
+      "y2": 449,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    }
+  ]
+}
