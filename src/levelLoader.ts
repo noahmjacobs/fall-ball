@@ -2,7 +2,7 @@ import type { LevelData } from './types/level';
 
 export async function loadCampaignLevels(): Promise<LevelData[]> {
   try {
-    const manifestRes = await fetch('/levels/campaign/manifest.json');
+    const manifestRes = await fetch(`/levels/campaign/manifest.json?v=${Date.now()}`);
     if (!manifestRes.ok) return [];
     const manifest: { levels: string[] } = await manifestRes.json();
 
