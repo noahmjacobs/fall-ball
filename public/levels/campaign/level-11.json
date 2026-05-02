@@ -1,0 +1,43 @@
+{
+  "name": "Level 11",
+  "makesNeeded": 1,
+  "hoops": [
+    {
+      "id": "e4",
+      "baseX": 192,
+      "baseY": 334,
+      "pattern": "circle",
+      "speed": 5,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 170,
+      "ampY": 20,
+      "frameOffset": 0,
+      "rotation": 270
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e5",
+      "x1": 59,
+      "y1": 490,
+      "x2": 120,
+      "y2": 490,
+      "type": "trampoline",
+      "thick": 10,
+      "restitution": 1,
+      "friction": 1
+    },
+    {
+      "id": "e6",
+      "x1": 279,
+      "y1": 491,
+      "x2": 341,
+      "y2": 489,
+      "type": "trampoline",
+      "thick": 10,
+      "restitution": 1,
+      "friction": 1
+    }
+  ]
+}
