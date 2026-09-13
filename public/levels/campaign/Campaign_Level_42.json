@@ -1,0 +1,20 @@
+{
+  "name": "Spinner",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 450,
+      "pattern": "circle",
+      "speed": 3,
+      "innerHalf": 42,
+      "rimThick": 10,
+      "ampX": 130,
+      "ampY": 70,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

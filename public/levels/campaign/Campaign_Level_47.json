@@ -1,0 +1,33 @@
+{
+  "name": "Orbit Pair",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 350,
+      "pattern": "circle",
+      "speed": 2,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 90,
+      "ampY": 40,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 530,
+      "pattern": "circle",
+      "speed": 2,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 90,
+      "ampY": 40,
+      "frameOffset": 30,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

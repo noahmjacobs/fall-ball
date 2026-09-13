@@ -1,0 +1,32 @@
+{
+  "name": "Waterslide II",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 250,
+      "baseY": 430,
+      "pattern": "linear",
+      "speed": 4,
+      "innerHalf": 34,
+      "rimThick": 10,
+      "ampX": 90,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 20,
+      "y1": 240,
+      "x2": 220,
+      "y2": 340,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.3,
+      "friction": 0.95
+    }
+  ]
+}

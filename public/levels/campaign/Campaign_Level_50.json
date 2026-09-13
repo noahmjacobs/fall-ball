@@ -1,0 +1,33 @@
+{
+  "name": "Lift and Shift",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 320,
+      "pattern": "linear_v",
+      "speed": 2,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 100,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 560,
+      "pattern": "linear",
+      "speed": 2,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 100,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

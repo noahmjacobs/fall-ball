@@ -15,9 +15,10 @@ Fall Ball is a mobile-first basketball arcade game. Players drag and release a b
 npm run dev      # local dev server (localhost:5173, increments if port taken)
 npm run build    # tsc + vite build (run this to check for type errors)
 npm run preview  # preview production build
+npm run levels:check  # simulate every campaign level: solvable? stuck? difficulty (see docs/LEVEL_SYSTEM.md)
 ```
 
-No test runner configured.
+No test runner configured. `levels:check` is the closest thing — run it after adding or editing a campaign level.
 
 ## Tech Stack
 
@@ -60,4 +61,4 @@ Each major system has its own doc. **Read the relevant doc before touching that 
 
 **Level routing:**
 - Levels 1–9 → `setupHoops()` / `setupObstacles()` in `GameScreen.tsx` (hardcoded)
-- Levels 10+ → loaded from `campaignLevels[level - 10]` (JSON)
+- Levels 10+ → loaded from `campaignLevels[level - 10]` (JSON). Levels 13–100 live in `public/levels/campaign/Campaign_Level_NN.json`; the roster and design rules are in `docs/LEVEL_SYSTEM.md`.

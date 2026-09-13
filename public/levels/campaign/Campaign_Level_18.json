@@ -1,0 +1,20 @@
+{
+  "name": "Box Step",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 400,
+      "pattern": "rectangle",
+      "speed": 2,
+      "innerHalf": 42,
+      "rimThick": 10,
+      "ampX": 110,
+      "ampY": 120,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

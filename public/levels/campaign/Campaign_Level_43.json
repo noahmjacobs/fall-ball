@@ -1,0 +1,46 @@
+{
+  "name": "Triple Stack",
+  "makesNeeded": 3,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 300,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 42,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 450,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 42,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e3",
+      "baseX": 195,
+      "baseY": 600,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 42,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

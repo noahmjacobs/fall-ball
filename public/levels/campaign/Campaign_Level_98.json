@@ -1,0 +1,43 @@
+{
+  "name": "Cage",
+  "makesNeeded": 1,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 310,
+      "baseY": 300,
+      "pattern": "linear_v",
+      "speed": 4,
+      "innerHalf": 30,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 120,
+      "frameOffset": 0,
+      "rotation": 90
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 10,
+      "y1": 600,
+      "x2": 150,
+      "y2": 620,
+      "type": "trampoline",
+      "thick": 10,
+      "restitution": 0.89,
+      "friction": 1
+    },
+    {
+      "id": "e3",
+      "x1": 375,
+      "y1": 200,
+      "x2": 375,
+      "y2": 600,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    }
+  ]
+}

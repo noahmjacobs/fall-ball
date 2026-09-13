@@ -1,0 +1,20 @@
+{
+  "name": "Speed Box II",
+  "makesNeeded": 1,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 420,
+      "pattern": "rectangle",
+      "speed": 5,
+      "innerHalf": 26,
+      "rimThick": 10,
+      "ampX": 130,
+      "ampY": 130,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

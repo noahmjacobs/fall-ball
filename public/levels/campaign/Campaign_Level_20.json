@@ -1,0 +1,33 @@
+{
+  "name": "Tandem",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 360,
+      "pattern": "linear",
+      "speed": 2,
+      "innerHalf": 46,
+      "rimThick": 10,
+      "ampX": 100,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 520,
+      "pattern": "linear",
+      "speed": 2,
+      "innerHalf": 46,
+      "rimThick": 10,
+      "ampX": 100,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

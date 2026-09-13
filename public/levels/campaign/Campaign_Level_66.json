@@ -1,0 +1,20 @@
+{
+  "name": "Tight Orbit",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 450,
+      "pattern": "circle",
+      "speed": 3.5,
+      "innerHalf": 30,
+      "rimThick": 10,
+      "ampX": 130,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

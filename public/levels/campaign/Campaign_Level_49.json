@@ -1,0 +1,45 @@
+{
+  "name": "Bounce Chain",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 150,
+      "baseY": 390,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 46,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 180
+    },
+    {
+      "id": "e2",
+      "baseX": 240,
+      "baseY": 230,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 46,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 90
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e3",
+      "x1": 10,
+      "y1": 600,
+      "x2": 150,
+      "y2": 620,
+      "type": "trampoline",
+      "thick": 10,
+      "restitution": 0.89,
+      "friction": 1
+    }
+  ]
+}

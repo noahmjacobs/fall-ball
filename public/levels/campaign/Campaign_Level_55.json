@@ -1,0 +1,32 @@
+{
+  "name": "Gutter",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 310,
+      "baseY": 470,
+      "pattern": "linear_v",
+      "speed": 2.5,
+      "innerHalf": 38,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 100,
+      "frameOffset": 0,
+      "rotation": 90
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 20,
+      "y1": 330,
+      "x2": 290,
+      "y2": 480,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.3,
+      "friction": 0.95
+    }
+  ]
+}

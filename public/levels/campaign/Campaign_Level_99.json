@@ -1,0 +1,46 @@
+{
+  "name": "Eye of the Needle",
+  "makesNeeded": 1,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 300,
+      "pattern": "linear",
+      "speed": 3.5,
+      "innerHalf": 36,
+      "rimThick": 10,
+      "ampX": 110,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 450,
+      "pattern": "linear",
+      "speed": 3.5,
+      "innerHalf": 36,
+      "rimThick": 10,
+      "ampX": 110,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e3",
+      "baseX": 195,
+      "baseY": 600,
+      "pattern": "linear",
+      "speed": 3.5,
+      "innerHalf": 36,
+      "rimThick": 10,
+      "ampX": 110,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

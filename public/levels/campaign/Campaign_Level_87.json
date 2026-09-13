@@ -1,0 +1,56 @@
+{
+  "name": "Ramp Chain II",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 325,
+      "baseY": 360,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 40,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 330
+    },
+    {
+      "id": "e2",
+      "baseX": 325,
+      "baseY": 450,
+      "pattern": "linear",
+      "speed": 3.5,
+      "innerHalf": 36,
+      "rimThick": 10,
+      "ampX": 90,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e3",
+      "x1": 20,
+      "y1": 260,
+      "x2": 190,
+      "y2": 320,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.6,
+      "friction": 0.95
+    },
+    {
+      "id": "e4",
+      "x1": 240,
+      "y1": 190,
+      "x2": 375,
+      "y2": 225,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.6,
+      "friction": 0.95
+    }
+  ]
+}
