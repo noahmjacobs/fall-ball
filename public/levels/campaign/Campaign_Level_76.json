@@ -1,0 +1,43 @@
+{
+  "name": "Skylight Orbit",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 540,
+      "pattern": "circle",
+      "speed": 3,
+      "innerHalf": 40,
+      "rimThick": 10,
+      "ampX": 100,
+      "ampY": 40,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 150,
+      "y1": 230,
+      "x2": 20,
+      "y2": 265,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    },
+    {
+      "id": "e3",
+      "x1": 240,
+      "y1": 230,
+      "x2": 370,
+      "y2": 265,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    }
+  ]
+}

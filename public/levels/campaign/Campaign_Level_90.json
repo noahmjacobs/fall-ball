@@ -1,0 +1,46 @@
+{
+  "name": "Elevator Trio",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 300,
+      "pattern": "linear_v",
+      "speed": 3,
+      "innerHalf": 40,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 450,
+      "pattern": "linear",
+      "speed": 3,
+      "innerHalf": 40,
+      "rimThick": 10,
+      "ampX": 90,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e3",
+      "baseX": 195,
+      "baseY": 600,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 40,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

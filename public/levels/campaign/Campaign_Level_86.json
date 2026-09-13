@@ -1,0 +1,46 @@
+{
+  "name": "Orbit Trio",
+  "makesNeeded": 1,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 320,
+      "pattern": "circle_cw",
+      "speed": 2.5,
+      "innerHalf": 40,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 460,
+      "pattern": "circle_cw",
+      "speed": 2.5,
+      "innerHalf": 40,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e3",
+      "baseX": 195,
+      "baseY": 600,
+      "pattern": "circle_cw",
+      "speed": 2.5,
+      "innerHalf": 40,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

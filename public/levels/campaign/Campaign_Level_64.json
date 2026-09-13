@@ -1,0 +1,20 @@
+{
+  "name": "Quickstep",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 470,
+      "pattern": "linear",
+      "speed": 4.5,
+      "innerHalf": 38,
+      "rimThick": 10,
+      "ampX": 140,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

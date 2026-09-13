@@ -1,0 +1,43 @@
+{
+  "name": "Ricochet",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 150,
+      "baseY": 600,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 60,
+      "y1": 250,
+      "x2": 220,
+      "y2": 310,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.6,
+      "friction": 0.95
+    },
+    {
+      "id": "e3",
+      "x1": 375,
+      "y1": 200,
+      "x2": 375,
+      "y2": 560,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    }
+  ]
+}

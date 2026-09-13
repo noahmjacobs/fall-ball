@@ -1,0 +1,20 @@
+{
+  "name": "Fast Lane",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 480,
+      "pattern": "linear",
+      "speed": 3.5,
+      "innerHalf": 46,
+      "rimThick": 10,
+      "ampX": 150,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

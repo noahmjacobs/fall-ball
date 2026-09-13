@@ -1,0 +1,43 @@
+{
+  "name": "Stairs II",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 160,
+      "baseY": 500,
+      "pattern": "linear",
+      "speed": 4,
+      "innerHalf": 36,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 20,
+      "y1": 250,
+      "x2": 180,
+      "y2": 330,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.3,
+      "friction": 0.95
+    },
+    {
+      "id": "e3",
+      "x1": 370,
+      "y1": 400,
+      "x2": 200,
+      "y2": 490,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.3,
+      "friction": 0.95
+    }
+  ]
+}

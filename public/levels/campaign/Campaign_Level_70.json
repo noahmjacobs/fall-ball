@@ -1,0 +1,20 @@
+{
+  "name": "Tilted Sprint",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 460,
+      "pattern": "linear",
+      "speed": 4,
+      "innerHalf": 40,
+      "rimThick": 10,
+      "ampX": 130,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 30
+    }
+  ],
+  "obstacles": []
+}

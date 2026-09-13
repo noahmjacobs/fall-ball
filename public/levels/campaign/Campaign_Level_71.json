@@ -1,0 +1,46 @@
+{
+  "name": "Small Stack",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 320,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 36,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 460,
+      "pattern": "linear",
+      "speed": 2,
+      "innerHalf": 36,
+      "rimThick": 10,
+      "ampX": 70,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e3",
+      "baseX": 195,
+      "baseY": 600,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 36,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

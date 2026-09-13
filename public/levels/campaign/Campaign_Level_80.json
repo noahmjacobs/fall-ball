@@ -1,0 +1,43 @@
+{
+  "name": "Rebound II",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 300,
+      "baseY": 610,
+      "pattern": "linear",
+      "speed": 4.5,
+      "innerHalf": 32,
+      "rimThick": 10,
+      "ampX": 70,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 120,
+      "y1": 300,
+      "x2": 300,
+      "y2": 370,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.6,
+      "friction": 0.95
+    },
+    {
+      "id": "e3",
+      "x1": 375,
+      "y1": 150,
+      "x2": 375,
+      "y2": 600,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    }
+  ]
+}

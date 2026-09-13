@@ -1,0 +1,32 @@
+{
+  "name": "Kicker",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 240,
+      "baseY": 570,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 90
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 300,
+      "y1": 600,
+      "x2": 380,
+      "y2": 520,
+      "type": "trampoline",
+      "thick": 10,
+      "restitution": 0.89,
+      "friction": 1
+    }
+  ]
+}

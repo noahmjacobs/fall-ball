@@ -1,0 +1,20 @@
+{
+  "name": "Sidestep",
+  "makesNeeded": 3,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 460,
+      "pattern": "linear",
+      "speed": 2.5,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 130,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

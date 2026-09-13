@@ -1,0 +1,33 @@
+{
+  "name": "See-Saw",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 400,
+      "pattern": "linear",
+      "speed": 2,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 60,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 20
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 550,
+      "pattern": "linear",
+      "speed": 2,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 60,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 340
+    }
+  ],
+  "obstacles": []
+}

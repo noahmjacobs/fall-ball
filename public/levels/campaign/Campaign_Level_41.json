@@ -1,0 +1,20 @@
+{
+  "name": "Twister",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 440,
+      "pattern": "figure8",
+      "speed": 3,
+      "innerHalf": 42,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 20
+    }
+  ],
+  "obstacles": []
+}

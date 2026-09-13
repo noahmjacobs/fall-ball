@@ -1,0 +1,33 @@
+{
+  "name": "Scissors II",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 350,
+      "pattern": "linear",
+      "speed": 4,
+      "innerHalf": 42,
+      "rimThick": 10,
+      "ampX": 90,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 520,
+      "pattern": "linear",
+      "speed": 4,
+      "innerHalf": 42,
+      "rimThick": 10,
+      "ampX": 90,
+      "ampY": 60,
+      "frameOffset": 45,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

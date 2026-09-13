@@ -1,0 +1,33 @@
+{
+  "name": "Yo-Yo Stack",
+  "makesNeeded": 1,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 330,
+      "pattern": "linear_v",
+      "speed": 4,
+      "innerHalf": 34,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 100,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 600,
+      "pattern": "linear",
+      "speed": 4,
+      "innerHalf": 34,
+      "rimThick": 10,
+      "ampX": 100,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

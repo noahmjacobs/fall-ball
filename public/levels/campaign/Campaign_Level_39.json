@@ -1,0 +1,87 @@
+{
+  "name": "Slalom",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 140,
+      "baseY": 600,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 44,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 110,
+      "y1": 280,
+      "x2": 130,
+      "y2": 290,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    },
+    {
+      "id": "e3",
+      "x1": 260,
+      "y1": 280,
+      "x2": 280,
+      "y2": 290,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    },
+    {
+      "id": "e4",
+      "x1": 110,
+      "y1": 400,
+      "x2": 130,
+      "y2": 410,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    },
+    {
+      "id": "e5",
+      "x1": 260,
+      "y1": 400,
+      "x2": 280,
+      "y2": 410,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    },
+    {
+      "id": "e6",
+      "x1": 110,
+      "y1": 520,
+      "x2": 130,
+      "y2": 530,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    },
+    {
+      "id": "e7",
+      "x1": 260,
+      "y1": 520,
+      "x2": 280,
+      "y2": 530,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    }
+  ]
+}

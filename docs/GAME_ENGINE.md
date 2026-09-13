@@ -25,11 +25,12 @@ All mutable game state lives in `stateRef` (a `useRef`) so it can be read and wr
 | `level` | `number` | Current level (1-based) |
 | `lives` | `number` | Lives remaining (campaign only) |
 | `makesThisLevel` | `number` | Baskets made so far this level |
-| `currentMakesNeeded` | `number` | Baskets required to advance (from JSON for levels 10+) |
+| `currentMakesNeeded` | `number` | Baskets required to advance (from JSON for levels 10+, updated on every level-up in both campaign and arcade; also drives the HUD progress bar) |
 | `gameOverFired` | `boolean` | Prevents duplicate `onGameOver` calls |
 | `gameWonFired` | `boolean` | Prevents duplicate `onGameWon` calls |
 | `wonPending` | `boolean` | Set when last JSON level is beaten; triggers win after animation |
 | `frame` | `number` | Increments every frame, drives hoop movement animations |
+| `restX`, `restY`, `restFrames` | `number` | Last ball position and how many frames it has stayed there (rest timeout) |
 
 ## Phase State Machine
 
@@ -60,7 +61,9 @@ Each frame the ball runs through 3 physics substeps for accuracy. Within each su
 3. Obstacle collision (circle vs line segment + endpoint circles)
 4. Floor/ceiling check (ball exits bottom → miss)
 
-**Anti-stick nudge:** After any rim or obstacle endpoint collision, if `|ball.vx| < 0.5`, a random lateral nudge is added so the ball never balances vertically on a surface.
+**Anti-stick nudge:** After any rim or metal-endpoint collision, if `|ball.vx| < 0.5`, a random lateral nudge is added so the ball never balances vertically on a surface.
+
+**Rest timeout:** The nudge does not cover a ball resting on a flat bar or bouncing in place on a trampoline endpoint. If the ball moves less than 2px for 120 frames (2s) while `dropping`, `registerMiss()` fires — the same path as falling off the bottom — so a level can never soft-lock.
 
 ## Scoring — CCD (Continuous Collision Detection)
 

@@ -1,0 +1,32 @@
+{
+  "name": "The Window",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 265,
+      "baseY": 240,
+      "pattern": "still",
+      "speed": 0,
+      "innerHalf": 46,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 90
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 10,
+      "y1": 600,
+      "x2": 150,
+      "y2": 620,
+      "type": "trampoline",
+      "thick": 10,
+      "restitution": 0.89,
+      "friction": 1
+    }
+  ]
+}

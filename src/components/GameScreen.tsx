@@ -309,6 +309,7 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
     stars: [] as Star[],
     shakeFrames: 0, shakeIntensity: 0, phaseTimer: 0,
     rimHitThisShot: false,
+    restX: 0, restY: 0, restFrames: 0,
     plusOneAlpha: 0, plusOneY: 0, plusOneX: CW / 2, levelUpAlpha: 0, canvasHeight: 0,
     showDragHint: true,
     nearMiss: false,
@@ -420,6 +421,20 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
     const s = stateRef.current;
     s.frame++;
     const ch = s.canvasHeight;
+
+    function registerMiss() {
+      if (!arcadeMode) s.lives = Math.max(0, s.lives - 1);
+      s.phase = 'missed'; s.phaseTimer = s.lives <= 0 && !arcadeMode ? 90 : 50;
+      s.shakeFrames = 16; s.shakeIntensity = 9;
+      if (s.nearMiss || s.rimHitThisShot) {
+        s.missType = 'close';
+        s.closeToggle = !s.closeToggle;
+      } else {
+        s.missType = 'airball';
+      }
+      s.nearMiss = false;
+      playMiss();
+    }
 
     if (s.shakeFrames > 0) { s.shakeFrames--; s.shakeIntensity *= 0.88; }
     s.particles = s.particles.filter(p => p.life > 0);
@@ -550,14 +565,15 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
                   s.phase = 'levelup'; s.phaseTimer = 80; s.levelUpAlpha = 1;
                   emitParticles(s.particles, CW / 2, ch / 2, 40);
                   playLevelUp();
-                  if (!arcadeMode && s.level >= 10) {
+                  if (s.level >= 10) {
                     const nextIdx = s.level - 10;
                     if (nextIdx >= campaignLevels.length) {
-                      s.wonPending = true;
+                      // Campaign: beat the last JSON level → win. Arcade keeps going (EXIT to leave).
+                      if (!arcadeMode) s.wonPending = true;
                     } else {
                       s.currentMakesNeeded = campaignLevels[nextIdx].makesNeeded;
                     }
-                  } else if (!arcadeMode && s.level < 10) {
+                  } else {
                     s.currentMakesNeeded = getLevelCfg(s.level).makesNeeded;
                   }
                 }
@@ -650,22 +666,24 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
       if (resolved) break;
 
       if (s.ball.y > ch + BALL_R * 2) {
-        if (!arcadeMode) s.lives = Math.max(0, s.lives - 1);
-        s.phase = 'missed'; s.phaseTimer = s.lives <= 0 && !arcadeMode ? 90 : 50;
-        s.shakeFrames = 16; s.shakeIntensity = 9;
-        if (s.nearMiss || s.rimHitThisShot) {
-          s.missType = 'close';
-          s.closeToggle = !s.closeToggle;
-        } else {
-          s.missType = 'airball';
-        }
-        s.nearMiss = false;
-        playMiss();
+        registerMiss();
         resolved = true;
         break;
       }
     }
     s.prevBall = { x: s.ball.x, y: s.ball.y };
+
+    // Safety net: a ball that comes to rest (flat bar, or bouncing in place on an
+    // obstacle endpoint) would otherwise sit there forever. Two seconds without
+    // meaningful movement counts as a miss.
+    if (s.phase === 'dropping') {
+      if (Math.abs(s.ball.x - s.restX) < 2 && Math.abs(s.ball.y - s.restY) < 2) {
+        s.restFrames++;
+        if (s.restFrames > 120) registerMiss();
+      } else {
+        s.restX = s.ball.x; s.restY = s.ball.y; s.restFrames = 0;
+      }
+    }
 
     // Trail history — speed threshold in render hides it during aiming
     trailHistoryRef.current.push({ x: s.ball.x, y: s.ball.y });
@@ -675,7 +693,6 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
   function render(ctx: CanvasRenderingContext2D) {
     const s = stateRef.current;
     const ch = s.canvasHeight;
-    const cfg = getLevelCfg(s.level);
     const sx = s.shakeFrames > 0 ? (Math.random() - 0.5) * s.shakeIntensity : 0;
     const sy = s.shakeFrames > 0 ? (Math.random() - 0.5) * s.shakeIntensity : 0;
     ctx.fillStyle = '#1a1035';
@@ -843,8 +860,9 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
       for (let i = 0; i < 3; i++) heartsStr += i < s.lives ? '♥' : '♡';
       ctx.fillStyle = '#ff4444'; ctx.fillText(heartsStr, CW - 10, 32);
     }
-    // Progress bar — use currentMakesNeeded for community levels so it reflects the actual target
-    const makesTarget = testLevel ? s.currentMakesNeeded : cfg.makesNeeded;
+    // Progress bar — currentMakesNeeded is the live target for every level type
+    // (JSON campaign levels can require 1, 2 or 3 makes)
+    const makesTarget = s.currentMakesNeeded;
     const barH = 10, barY = ch - barH - 4;
     const prog = Math.min(1, s.makesThisLevel / makesTarget);
     ctx.fillStyle = '#111128'; ctx.fillRect(0, barY, CW, barH);
@@ -913,6 +931,7 @@ export default function GameScreen({ onGameOver, onGameWon, personalBest, arcade
     s.ball.vy = 0; s.ball.vx = 0;
     s.prevBall = { x: s.ball.x, y: s.ball.y };
     s.rimHitThisShot = false;
+    s.restX = s.ball.x; s.restY = s.ball.y; s.restFrames = 0;
   }, []);
 
   return (

@@ -1,0 +1,20 @@
+{
+  "name": "Comet",
+  "makesNeeded": 1,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 460,
+      "pattern": "circle",
+      "speed": 5,
+      "innerHalf": 32,
+      "rimThick": 10,
+      "ampX": 150,
+      "ampY": 80,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

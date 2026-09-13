@@ -1,0 +1,43 @@
+{
+  "name": "Funnel",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 580,
+      "pattern": "linear",
+      "speed": 3,
+      "innerHalf": 38,
+      "rimThick": 10,
+      "ampX": 130,
+      "ampY": 60,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 20,
+      "y1": 250,
+      "x2": 160,
+      "y2": 400,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    },
+    {
+      "id": "e3",
+      "x1": 370,
+      "y1": 250,
+      "x2": 230,
+      "y2": 400,
+      "type": "metal",
+      "thick": 5,
+      "restitution": 0.8,
+      "friction": 0.95
+    }
+  ]
+}

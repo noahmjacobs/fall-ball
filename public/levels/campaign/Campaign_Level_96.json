@@ -1,0 +1,33 @@
+{
+  "name": "Double Comet",
+  "makesNeeded": 1,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 360,
+      "pattern": "circle",
+      "speed": 4,
+      "innerHalf": 38,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 50,
+      "frameOffset": 0,
+      "rotation": 0
+    },
+    {
+      "id": "e2",
+      "baseX": 195,
+      "baseY": 560,
+      "pattern": "circle",
+      "speed": 4,
+      "innerHalf": 38,
+      "rimThick": 10,
+      "ampX": 120,
+      "ampY": 50,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": []
+}

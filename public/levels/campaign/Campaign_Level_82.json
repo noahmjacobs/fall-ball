@@ -1,0 +1,43 @@
+{
+  "name": "Half Pipe II",
+  "makesNeeded": 2,
+  "hoops": [
+    {
+      "id": "e1",
+      "baseX": 195,
+      "baseY": 380,
+      "pattern": "circle",
+      "speed": 4,
+      "innerHalf": 34,
+      "rimThick": 10,
+      "ampX": 100,
+      "ampY": 40,
+      "frameOffset": 0,
+      "rotation": 0
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "e2",
+      "x1": 5,
+      "y1": 520,
+      "x2": 160,
+      "y2": 620,
+      "type": "trampoline",
+      "thick": 10,
+      "restitution": 0.89,
+      "friction": 1
+    },
+    {
+      "id": "e3",
+      "x1": 385,
+      "y1": 520,
+      "x2": 230,
+      "y2": 620,
+      "type": "trampoline",
+      "thick": 10,
+      "restitution": 0.89,
+      "friction": 1
+    }
+  ]
+}
